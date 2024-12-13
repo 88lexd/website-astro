@@ -41,30 +41,19 @@ Once its running, I can make changes and it will refresh the page automatically.
 ## Running live
 The follwing needs to be done at a high level
 
-### Build notes
+- Make changes to posts
+- Build docker image (build and host app via Nginx)
+- CI to push to repo
+- CI to update deployment (private runner on GitHub?)
+
+### Build notes.. random
 Build production and host via Nginx
 
+
 ```
-FROM node:20-slim AS base
+# Use the Dockerfile
+docker build -t astro .
 
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-
-RUN corepack enable
-COPY . /app
-WORKDIR /app
-
-FROM base AS prod-deps
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
-
-FROM base AS build
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build
-
-FROM base
-COPY --from=prod-deps /app/node_modules /app/node_modules
-COPY --from=build /app/dist /app/dist
-EXPOSE 8000
-CMD [ "pnpm", "start" ]
+# Note: There seem to be a bug where the `about` and `tags` page is not working...
+docker run -it -p 80:80 astro
 ```

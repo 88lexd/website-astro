@@ -1,0 +1,10 @@
+**/node_modules/
+**/dist
+**/.astro
+**/.pnpm-store
+.git
+npm-debug.log
+.coverage
+.coverage.*
+.env
+.aws
