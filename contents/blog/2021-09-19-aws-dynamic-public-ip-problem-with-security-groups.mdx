@@ -1,0 +1,88 @@
+---
+title: "AWS - Dynamic Public IP Problem with Security Groups"
+description: >-
+  AWS security groups is the foundation on how network access is granted to any EC2 resources. The definition which AWS uses is that...
+pubDate: 'Sep 19 2021'
+heroImage: '../../assets/images/DYNAMIC.png'
+category: "Automation"
+tags:
+  - "aws"
+  - "python"
+  - "security"
+---
+
+AWS security groups is the foundation on how network access is granted to any EC2 resources. The definition which AWS uses is that
+
+> A security group acts as a virtual firewall for your instance to control inbound and outbound traffic"
+
+It is very common to allow SSH (TCP 22) or RDP (TCP 3389) on the security groups which are attached to EC2 instances. Unless a VPN or an AWS Direct Connection is setup into AWS, it is very likely for someone to set the source CIDR on the security group by using their own public/external IP address such as _1.2.3.4/32_
+
+## Static IP vs Dynamic IP
+
+```
+Note: We are not talking about the private IP addresses. These are generally 10.x.y.z, 192.168.x.y or 172.16-31.x.y.
+These IP ranges are generally NAT out to the Internet and your true public IP address is the one assigned to you by your ISP (Internet Service Provider)
+```
+
+A static IP address is one that does not change over time.
+
+A dynamic IP address is one that changes over time. Once the current IP lease expires, your ISP will assign you a different one.
+
+For home internet connections, most ISP's (Internet Service Provider) offers static IP address as optional and generally charges more each month for this. For business connections on the other hand, they generally have a static IP assigned to you.
+
+To check what your current public IP address is, you can simply type "_what is my ip_" onto Google and it will show you the result. For example:
+
+<img src="/images/2021-09-19-13_48_02-what-is-my-ip-Google-Search.png" />
+
+## Solving the Problem Through Automation
+
+My home internet connection does not provide an option for static IP and therefore my public IP often changes over time. This can be very time consuming for having to log onto the AWS Console and make a change to the security groups each time this happens.
+
+I've worked around this problem without compromising security by writing my own script to automatically update the security group with my current IP address whenever I need to access the EC2 instances via SSH.
+
+Example:
+
+```raw
+$ aws-update-sg --add-rules --rule-file sg-rules.yml
+Displaying current ingress rules for - sg-091d91a3132ebef48 (only showing rules where 'source' is an IP CIDR)
+  Protcol: tcp | From Port: 80 | To Port: 80 | Source: [{'CidrIp': '0.0.0.0/0', 'Description': 'Allow HTTP'}]
+  Protcol: tcp | From Port: 443 | To Port: 443 | Source: [{'CidrIp': '0.0.0.0/0', 'Description': 'Allow HTTPS'}]
+
+Script will add the following rules into - sg-091d91a3132ebef48
+  Protcol: tcp | From Port: 22 | To Port: 22 | Source (current): 49.179.xx.yy/32 | Description: Testing 123
+  Protcol: tcp | From Port: 22 | To Port: 22 | Source: 0.0.0.0/0 | Description: Testing 123
+
+Continue with the script? (yes/no): yes
+Updating security group...
+Update completed!
+```
+
+When I no longer need to access the server, I run the same script to remove the rule that I just added.
+
+Example:
+
+```raw
+$ aws-update-sg --remove-rules --rule-file sg-rules.yml
+Displaying current ingress rules for - sg-091d91a3132ebef48 (only showing rules where 'source' is an IP CIDR)
+  Protcol: tcp | From Port: 80 | To Port: 80 | Source: [{'CidrIp': '0.0.0.0/0', 'Description': 'Allow HTTP'}]
+  Protcol: tcp | From Port: 22 | To Port: 22 | Source: [{'CidrIp': '49.179.xx.yy/32', 'Description': 'Testing 123'}, {'CidrIp': '0.0.0.0/0', 'Description': 'Testing 123'}]
+  Protcol: tcp | From Port: 443 | To Port: 443 | Source: [{'CidrIp': '0.0.0.0/0', 'Description': 'Allow HTTPS'}]
+
+Script will remove the rules where description == Testing 123
+Continue with the script? (yes/no): yes
+  Removing -- Protcol: tcp | From Port: 22 | To Port: 22 | Source: 49.179.xx.yy/32
+  Removing -- Protcol: tcp | From Port: 22 | To Port: 22 | Source: 0.0.0.0/0
+All ingress rules matching description has been removed!
+```
+
+The source code and usage is available on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/misc-scripts/python-aws-update-sg), so feel free to check it out.
+
+## Requirements
+
+To use the script, Python3 must be installed and AWS credentials must be configured. The credentials must have the permissions granted to make changes to EC2 Security Groups.
+
+## Future with Assume Roles
+
+Using fixed AWS access and secret keys (one created via IAM console) is not the best practice and should be avoided. The better way to access AWS via the public API is to use STS tokens.
+
+My AWS account is preconfigured for this but I just don't have the time yet to develop the script to assume role into my admin role. In my future blogs I will talk more about this, but for now if you are interested, you can take a look at the CloudFormation template which I've used to deploy the IAM user and the Admin role here on my [GitHub](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/1-infra-configuration/1-base-setup) page.
