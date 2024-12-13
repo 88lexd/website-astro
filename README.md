@@ -27,9 +27,7 @@ Inside the container
 cd /app/astro
 
 npm install -g pnpm@latest-7
-pnpm install
-
-pnpm dev
+pnpm install && pnpm dev
 ```
 
 Once its running, I can make changes and it will refresh the page automatically.
