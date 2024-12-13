@@ -4,6 +4,14 @@ Blog is powered on Astro and uses the [Blog Template](https://github.com/danielc
 ## Temp notes
 Below are some draft notes taken while I test drive.
 
+I've updated Astro by running:
+```
+rm -rf node_modules/
+pnpm up astro@4
+
+# This updated the package.json, so next time it should always install v4 which has the symlink fix
+```
+
 Start Container
 ```
 sudo service docker start
