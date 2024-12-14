@@ -10,6 +10,8 @@ tags:
   - "python"
   - "security"
 ---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
 
 AWS security groups is the foundation on how network access is granted to any EC2 resources. The definition which AWS uses is that
 
@@ -32,7 +34,7 @@ For home internet connections, most ISP's (Internet Service Provider) offers sta
 
 To check what your current public IP address is, you can simply type "_what is my ip_" onto Google and it will show you the result. For example:
 
-<img src="/images/2021-09-19-13_48_02-what-is-my-ip-Google-Search.png" />
+<ImageZoom src="/images/2021-09-19-13_48_02-what-is-my-ip-Google-Search.png" client:load />
 
 ## Solving the Problem Through Automation
 
@@ -42,7 +44,7 @@ I've worked around this problem without compromising security by writing my own 
 
 Example:
 
-```raw
+```
 $ aws-update-sg --add-rules --rule-file sg-rules.yml
 Displaying current ingress rules for - sg-091d91a3132ebef48 (only showing rules where 'source' is an IP CIDR)
   Protcol: tcp | From Port: 80 | To Port: 80 | Source: [{'CidrIp': '0.0.0.0/0', 'Description': 'Allow HTTP'}]
@@ -61,7 +63,7 @@ When I no longer need to access the server, I run the same script to remove the 
 
 Example:
 
-```raw
+```
 $ aws-update-sg --remove-rules --rule-file sg-rules.yml
 Displaying current ingress rules for - sg-091d91a3132ebef48 (only showing rules where 'source' is an IP CIDR)
   Protcol: tcp | From Port: 80 | To Port: 80 | Source: [{'CidrIp': '0.0.0.0/0', 'Description': 'Allow HTTP'}]

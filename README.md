@@ -19,7 +19,7 @@ sudo service docker start
 # IMPORTANT: Change into the ROOT of this repo!
 cd ~/code/git/website-astro
 
-docker run --rm -v $(pwd):/app -p 8080:4321 -it --entrypoint=bash node:18
+docker run --rm -v $(pwd):/app -p 80:4321 -it --entrypoint=bash node:18
 ```
 
 Inside the container
@@ -37,6 +37,19 @@ Once its running, I can make changes and it will refresh the page automatically.
     ip a | grep eth0: -A3 | grep inet
     inet 172.30.49.60/20 brd 172.30.63.255 scope global eth0
     ```
+
+Access from mobile over wifi
+```
+# On Admin PowerShell
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=80 connectaddress=172.30.49.60 connectport=8080
+
+# Check
+netsh interface portproxy show all
+```
+
+- Test from PC first (http://localhost)
+- Test from phone (http://pc-ip)
+
 
 ## Running live
 The follwing needs to be done at a high level
