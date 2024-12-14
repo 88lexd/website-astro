@@ -1,0 +1,55 @@
+---
+import ListCategories from '@/components/ListCategories';
+import ListPosts from '@/components/ListPosts';
+import TitlePage from '@/components/TitlePage';
+import BaseLayout from '@/layouts/BaseLayout';
+import { getPosts } from '@/utils';
+
+const POSTS_PER_PAGE = 8;
+const allPosts = await getPosts();
+const { page } = Astro.params;
+const currentPage = parseInt(page) || 1;
+const start = (currentPage - 1) * POSTS_PER_PAGE;
+const end = start + POSTS_PER_PAGE;
+const posts = allPosts.slice(start, end);
+
+const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
+
+function createPageLink(pageNumber) {
+  return pageNumber === 1 ? '/blog/' : `/blog/${pageNumber}/`;
+}
+
+export async function getStaticPaths() {
+  const allPosts = await getPosts();
+  const POSTS_PER_PAGE = 8;
+  const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
+
+  return Array.from({ length: totalPages }).map((_, i) => ({
+    params: { page: (i + 1).toString() }, // `page` param corresponds to [page].astro
+  }));
+}
+---
+
+<BaseLayout title={`Blog - Page ${currentPage}`}>
+  <TitlePage title="Lexd Solutions | Tech Blog" />
+  <ListCategories />
+  <div>
+    <h2 class="text-lg font-medium tracking-wide text-end">Latest Posts</h2>
+    <ListPosts FirstBig={true} posts={posts} />
+    <nav class="pagination">
+      {currentPage > 1 && (
+        <a href={createPageLink(currentPage - 1)}>Previous</a>
+      )}
+      {Array.from({ length: totalPages }).map((_, i) => (
+        <a href={createPageLink(i + 1)} class:active={currentPage === i + 1}>
+          {i + 1}
+        </a>
+      ))}
+      {currentPage < totalPages && (
+        <a href={createPageLink(currentPage + 1)}>Next</a>
+      )}
+    </nav>
+  </div>
+</BaseLayout>
+
+

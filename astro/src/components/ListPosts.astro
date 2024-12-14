@@ -17,66 +17,26 @@ const sortedPosts = posts.sort((a, b) => {
   return dateB - dateA; // Descending order
 });
 
-// Set how many posts to show initially
-const initialVisibleCount = 5; // Number of posts to show initially
+// Debug: Log pubDates for verification
+// console.log('Sorted Posts:', sortedPosts.map(post => ({ slug: post.slug, pubDate: post.data.pubDate })));
 ---
-
 <section
 	class={cn(
 		`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-3`,
 		FirstBig && `md:[&>*:first-child]:col-span-2`
 	)}
 >
-	{sortedPosts.slice(0, initialVisibleCount).map(async (post) => {
-		const { remarkPluginFrontmatter } = await post.render()
-		return (
-			<PostCard
-				data={post.data}
-				slug={post.slug}
-				readTime={remarkPluginFrontmatter.minutesRead}
-			/>
-		)
-	})}
+	{
+		sortedPosts.map(async (post) => {
+			const { remarkPluginFrontmatter } = await post.render()
+
+			return (
+				<PostCard
+					data={post.data}
+					slug={post.slug}
+					readTime={remarkPluginFrontmatter.minutesRead}
+				/>
+			)
+		})
+	}
 </section>
-
-<!-- See More Button -->
-{sortedPosts.length > initialVisibleCount && (
-	<button
-		id="seeMoreButton"
-		class="mt-4 p-2 bg-blue-500 text-white rounded"
-	>
-		See More Posts
-	</button>
-)}
-
-<!-- Hidden Posts Section (initially hidden) -->
-<section
-	id="postsContainer"
-	class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-3"
->
-	{sortedPosts.slice(initialVisibleCount).map(async (post) => {
-		const { remarkPluginFrontmatter } = await post.render()
-		return (
-			<PostCard
-				data={post.data}
-				slug={post.slug}
-				readTime={remarkPluginFrontmatter.minutesRead}
-			/>
-		)
-	})}
-</section>
-
-<script type="module" client:load>
-  // Client-side JavaScript to handle showing more posts
-  document.getElementById('seeMoreButton')?.addEventListener('click', () => {
-    const postsContainer = document.getElementById('postsContainer');
-    const seeMoreButton = document.getElementById('seeMoreButton');
-
-    if (postsContainer && seeMoreButton) {
-      // Reveal hidden posts
-      postsContainer.classList.remove('hidden');
-      // Hide the "See More" button
-      seeMoreButton.classList.add('hidden');
-    }
-  });
-</script>
