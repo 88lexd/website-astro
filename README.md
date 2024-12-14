@@ -41,7 +41,7 @@ Once its running, I can make changes and it will refresh the page automatically.
 Access from mobile over wifi
 ```
 # On Admin PowerShell
-netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=80 connectaddress=172.30.49.60 connectport=8080
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=80 connectaddress=172.30.49.60 connectport=80
 
 # Check
 netsh interface portproxy show all
