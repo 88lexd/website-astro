@@ -1,0 +1,201 @@
+---
+title: "Creating a GitHub Docker Container Action to Upload an Object to AWS S3"
+description: >-
+  In GitHub Actions, create a container action to upload to S3...
+pubDate: 2022/01/25
+category: How To
+tags:
+  - "aws"
+  - "github"
+heroImage: "../../assets/images/GitHub-Container-Action.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+
+**Update as of Nov 2022** - I initially created this GitHub Action so I can get some experience in writing my own custom action, since then I have discovered that using OIDC (OpenID Connect) is a lot secure than using long lived credentials.
+
+Please check out my latest post here for a much better and easier way to upload objects onto S3 from GitHub!
+
+https://lexdsolutions.com/2022/11/stop-using-iam-credentials-with-github-actions-oidc-ftw/
+
+GitHub Actions allows you to create a custom workflow for deploying applications and code. In most situations, the default runner used by GitHub is very limited as it does not contain all the libraries and tools required to build your application.
+
+For my use case, I wanted to have GitHub to automatically zip a file and upload it to a S3 bucket on AWS. This code can then be automatically deployed as a Lambda function via Terraform.
+
+The challenge I had was that the default runner does not come with awscli so I cannot communicate with AWS. This is where I decided to create my own Docker container image instead.
+
+## Creating the Action on GitHub
+
+Before we start working on the actual workflow, we need to first create the Docker container action.
+
+On GitHub, you can have a public action or a private action. The differences is explained below:
+
+**Public Action**
+
+Generally you will need to create a separate public GitHub repository dedicated for this action. This action can then be used by anyone on GitHub.
+
+A separate private GitHub repository may also be created with your dedicated action.
+
+**Private Action**
+
+A private action is where you can store the action on the "same" repository and have the workflow trigger this action. This is the type of action which I will be creating as I didn't want to create another repository for a simple task.
+
+**Creating a Local Action**
+
+There is no predefined location to store the action, however it is a good practice to store it in `.github/actions/<your-action-name>`
+
+In this action directory, you need to create a file called "_action.yml_" and this file will be executed by GitHub Actions.
+
+Example:
+
+```yaml
+# action.yml
+---
+name: "Push object to S3"
+description: "Push SINGLE object to s3"
+runs:
+  using: docker
+  image: Dockerfile
+inputs:
+  aws_access_key_id:
+    description: AWS Access Key Id
+    required: true
+  aws_secret_access_key:
+    description: AWS Access Key Secret
+    required: true
+  aws_region:
+    description: AWS Region
+    required: true
+  aws_s3_bucket_name:
+    description: AWS S3 Bucket Name where the dist file is uploaded
+    required: true
+  source_file:
+    description: Path of the single file (myFunction.zip)
+    required: true
+  destination_path:
+    description: Full path to store the object (e.g. /functionA/ (for a directory; MUST END IN '/' !!), or put '/'' to upload tothe bucket root dir)
+    required: true
+  destination_file_name:
+    description: Name for the destination file on S3 (e.g. myFunction.zip)
+    required: true
+```
+
+As shown above, this action will use docker and I am getting GitHub to create a new container by using the Dockerfile.
+
+Here I am also expecting the various inputs to be passed into this action.
+
+**Note**: For the "_.runs.image_" value, you can also specify an existing container image.
+
+Since I am not using an existing image, GitHub will create a new container for me during run time. To allow that, we need to create another file in this directory called "_Dockerfile_".
+
+xample:
+
+```yaml
+# Dockerfile
+FROM amazonlinux:2
+
+# https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+ENV AWSCLI_PKG='https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip'
+
+RUN yum install -y unzip
+
+RUN curl "${AWSCLI_PKG}" -o awscliv2.zip
+RUN unzip -q awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip ./aws/install
+
+COPY entrypoint.sh /entrypoint.sh
+
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
+```
+
+
+As shown above, this container will now have the awscli which is what I need for my workflow.
+
+The _ENTRYPOINT_ which I am using here is the "_entrypoint.sh_" which is copied into the container during the Docker build phase. This file is also located in this same directory. The content of this file is as shown:
+
+```shell
+# entrypoint.sh
+
+#!/bin/bash
+
+set -e
+
+PROFILE_NAME="push-obj-s3"
+
+# GitHub Actions will prefix env vars with INPUT_ and make them uppercase
+aws configure set aws_access_key_id ${INPUT_AWS_ACCESS_KEY_ID} --profile ${PROFILE_NAME}
+aws configure set aws_secret_access_key ${INPUT_AWS_SECRET_ACCESS_KEY} --profile ${PROFILE_NAME}
+aws configure set region ${INPUT_AWS_REGION} --profile ${PROFILE_NAME}
+
+aws s3 cp ${INPUT_SOURCE_FILE} s3://${INPUT_AWS_S3_BUCKET_NAME}${INPUT_DESTINATION_PATH}${INPUT_DESTINATION_FILE_NAME} --profile ${PROFILE_NAME}
+```
+
+This is all for creating the GitHub Container Action. If it helps, you can see the source code on my GitHub repository here: [https://github.com/88lexd/lexd-solutions/tree/main/.github/actions/push-object-to-s3](https://github.com/88lexd/lexd-solutions/tree/main/.github/actions/push-object-to-s3)
+
+## Creating the Workflow to Use the Local Action
+
+Now that I have the action created, the workflow can now call on the local Docker container action.
+
+To do this, a workflow is configured as "_.github/workflows/lambda-to-s3-jumpbox-uptime.yml_".
+
+Content in this file:
+
+```yaml
+---
+name: CI for Lambda to S3 for Jumpbox Uptime
+
+on:
+  ush:
+    branches: [ main ]
+    paths:
+    - 'aws-wordpress/3-app-configuration/lambda-jumpbox-uptime/src/**'
+  pull_request:
+    branches: [ main ]
+    aths:
+    - 'aws-wordpress/3-app-configuration/lambda-jumpbox-uptime/src/**'
+
+  # Allows workflow to run manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # To use this repository's private action,
+      # you must check out the repository
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: zip main.py in src/ to current workspace dir
+        run: |
+          CURRENT_DIR=$(pwd)
+          mkdir artifact
+          cd ./aws-wordpress/3-app-configuration/lambda-jumpbox-uptime/src/
+          zip "${CURRENT_DIR}/artifact/lambda-jumpbox-uptime.zip" main.py
+
+      - name: Custom docker container action to push object to S3
+        uses: ./.github/actions/push-object-to-s3
+        with:
+          aws_access_key_id: ${{ secrets.AWS_LAMBDA_S3_ACCESS_KEY }}
+          aws_secret_access_key: ${{ secrets.AWS_LAMBDA_S3_SECRET_KEY }}
+          aws_region: ap-southeast-2
+          aws_s3_bucket_name: lexd-solutions-lambdas
+          source_file: ./artifact/lambda-jumpbox-uptime.zip
+          destination_path: /
+          destination_file_name: lambda-jumpbox-uptime.zip
+```
+
+As shown above, it is important to first execute the action "_uses: actions/checkout@v2_" before we can run our local action.
+
+When I call the local action, I am also passing in the values as environmental variables. If you look back at the _entrypoint.sh_, these environmental variables will be converted to uppercase and prefixed with \_INPUT by GitHub.
+
+## GitHub Actions in Action
+
+This is what it looks like on GitHub when the workflow is triggered. Here you can see that the Docker container is built and it uploads the zip file to S3.
+
+<ImageZoom src="/images/gha-s3-image.png" client:load />
+
+## Conclusion
+
+GitHub Actions are very powerful and by using Docker containers, the possibility is endless with how you want to write your own CI/CD pipelines and workflows.
