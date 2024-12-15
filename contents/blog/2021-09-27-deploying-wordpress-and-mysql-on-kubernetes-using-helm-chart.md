@@ -76,7 +76,7 @@ As all the pods are referencing to the PVC, they will share the same persistent 
 
 Note: The pods itself don't mount to the NFS directly. It is the node itself that mounts to the NFS and then is passed this down to the pod. Example:
 
-```raw
+```
 ubuntu@ip-10-0-10-xxx:~$ kubectl describe pv -n prod pvc-3761c4b3-dbef-4cc3-a6cc-xxxxxx
 Name:            pvc-3761c4b3-dbef-4cc3-a6cc-xxxxxx
 Labels:          <none>
