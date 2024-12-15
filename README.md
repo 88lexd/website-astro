@@ -69,7 +69,6 @@ These changes were made on top of the base template:
 - Fixed sorting on landing page (prev was oldest to newest.. wrong way around)
 - Added About page
 - Added pagination
-- Default dark theme
 - Custom Categories
 - Symlinks for blog and image page to root of repo
 - Run as container with Dockerfile
