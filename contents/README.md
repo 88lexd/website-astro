@@ -17,3 +17,18 @@ lrwxrwxrwx 1 alex alex 28 Dec 13 22:56 astro/public/images -> ../../contents/ima
 ```
 
 This allows me to make changes to the blog content from the root dir instead of always going into the sub folders.
+
+# Categories
+Categories in blog posts are defined in the follwing file:
+- `../astro/src/data/categories.ts`
+
+For example:
+```
+export const CATEGORIES = [
+	'Automation',
+	'Tips and Tricks',
+	'How To',
+	'Building this Blog',
+	'Others'
+] as const
+```

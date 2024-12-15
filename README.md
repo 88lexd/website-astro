@@ -4,14 +4,6 @@ Blog is powered on Astro and uses the [Blog Template](https://github.com/danielc
 ## Temp notes
 Below are some draft notes taken while I test drive.
 
-I've updated Astro by running:
-```
-rm -rf node_modules/
-pnpm up astro@4
-
-# This updated the package.json, so next time it should always install v4 which has the symlink fix
-```
-
 Start Container
 ```
 sudo service docker start
@@ -69,4 +61,24 @@ docker build -t astro .
 
 # Note: There seem to be a bug where the `about` and `tags` page is not working...
 docker run -it -p 80:80 astro
+```
+
+# Additional Changes
+These changes were made on top of the base template:
+- Upgraded Astro v3 -> v4
+- Fixed sorting on landing page (prev was oldest to newest.. wrong way around)
+- Added About page
+- Added pagination
+- Default dark theme
+- Custom Categories
+- Symlinks for blog and image page to root of repo
+- Run as container with Dockerfile
+
+## Tech notes on changes
+I've updated Astro by running:
+```
+rm -rf node_modules/
+pnpm up astro@4
+
+# This updated the package.json, so next time it should always install v4 which has the symlink fix
 ```

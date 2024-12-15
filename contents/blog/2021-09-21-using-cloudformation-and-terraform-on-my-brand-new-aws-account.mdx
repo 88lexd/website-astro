@@ -1,0 +1,156 @@
+---
+title: "Using CloudFormation and Terraform on my Brand New AWS Account"
+description: >-
+  This is part 1 of 3 in my "how I built this blog" series.
+pubDate: 'Sep 21 2021'
+heroImage: '../../assets/images/AWS-cf-tf.png'
+category: Building this Blog
+tags:
+  - "how-i-built-this-blog"
+  - "scripts-and-automation"
+---
+
+This is part 1 of 3 in my "how I built this blog" series.
+
+## Background
+
+When I first started this personal blog project, I had a few requirements in mind:
+
+1. Must run on public cloud (AWS)
+
+3. Must all be deployed using Infrastructure as Code (Iac). e.g. CloudFormation / Terraform / Kubernetes / Ansible
+
+5. Application (WordPress) and database (MySQL) must be deployed using Kubernetes Helm Charts.
+
+7. All my source code is to be open sourced.
+
+## Chicken and the Egg Problem
+
+Initially I wanted to create the cloud infrastructure using only Terraform. However I was stuck in the chicken and the egg situation. Terraform by default saves the state file locally in a file called "terraform.tfstate". This is generally not a good practice for production environments as losing this file means you essentially make terraform pretty useless in managing the infrastructure.
+
+It is a good practice to store the Terraform state file on AWS S3 and enable versioning. Furthermore, when multiple users are using Terraform at that same time, Terraform state locking will not work. This is where state locking via DynamoDB comes into place. If you are not familiar with Terraform state then I would highly recommend you to take a look at their [documentation here](https://www.terraform.io/docs/language/state/index.html).
+
+Since I did not want to manually create any resources by hand and my new AWS account does not have a S3 bucket and a DynamoDB table for Terraform to use, the only choice left for me is to use AWS CloudFormation to create these initial resources.
+
+I will eventually use Terraform to provision the remaining infrastructure and this is explained below.
+
+## AWS CloudFormation
+
+This section references the source code here on my **[GitHub page.](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/1-infra-configuration/1-base-setup-cfn)**
+
+CloudFormation is a service that AWS offers. The infrastructure as code is defined in either a YAML or a JSON document.
+
+The CloudFormation template contains resources which are explained below.
+
+**First IAM User (Type: AWS::IAM::User)**
+
+AWS do not recommend using the root account. The root account is the initial email which was used to sign up and register with AWS. The best practice is to create an IAM account within AWS and use this account instead.
+
+**IAM Self Service Policy (Type: AWS::IAM::ManagedPolicy)**
+
+This resource policy is required otherwise the IAM user will not be able to configure it's own password and MFA (Multi Factor Authentication).
+
+**Assume Role Policy (Type: AWS::IAM::ManagedPolicy)**
+
+By using the least privileged security model, my IAM user will have no access to any other resources on AWS besides being able to Assume Role and set it's own password.
+
+This policy allows my user to assume role as an admin similar to how a user would call "sudo" on \*nix systems.
+
+**Lexd Admin Role (Type: AWS::IAM::Role)**
+
+This is the IAM role which my user is allowed to assume into. It has full administrator access and the condition to use this role, the IAM user must have MFA (Multi Factor Authentication) enabled.
+
+**Terraform State S3 Bucket (Type: AWS::S3::Bucket)**
+
+This S3 bucket will be used by Terraform to store its state information. The following S3 settings have also been enabled through code.
+
+- Server Side Encryption (SSE-S3)
+
+- Object Versioning
+
+- Life Cycle Management (auto delete expired objects)
+
+- Block all public access
+
+**Terraform State Lock DynamoDB (Type: AWS::DynamoDB::Table)**
+
+This is the DynamoDB table which Terraform will later use to store the lock state. I had explicitly set the read and write capacity units to 25 to keep this within the free tier.
+
+## Terraform
+
+This section references the source code here on my [**GitHub page**](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/1-infra-configuration/2-general-setup-aws-old).
+
+Terraform do a very similar thing as CloudFormation and the infrastructure as code is defined by using HCL (HashiCorp Configuration Language). The beauty of Terraform is the way you can use existing modules from the [Terraform Registry](https://registry.terraform.io/). In short, these are pre-existing code and configuration which can be imported and reused. As people say, why would you want to re-invent the wheel?
+
+So now that I have the "base-setup" deployed using CloudFormation, all the remaining cloud infrastructure that supports the application will be created by using Terraform.
+
+**Note**: the order in which these are defined is not important. Terraform will automatically map out the dependencies of each resource and will create them in the order it needs. e.g. an EC2 instance will not be created until the VPC and subnets are all created.
+
+**Design Decision**
+
+Before going into the resources that are provisioned using Terraform, I need to state why the design is done this way. From the very beginning, I wanted to keep costs to the minimum, yet providing me the exposure to using all the IaC tools I set out to use.
+
+The design right now may be simple but it can easily be expandable thanks to AWS's global infrastructure and everything is defined as code. Example, I can deploy more EC2 instances, use RDS (Relational Database Services) for the backend, spin up an ALB (Application Load Balancer) or use EKS (Elastic Kubernetes Service) with ASG (Auto scaling Group).
+
+More on the design decisions will be covered when I write about how the OS and MicroK8s is setup.
+
+**Using S3 and DynamoDB as the Backend** ([main.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/main.tf))
+
+As mentioned in the first section above, Terraform is best to use with S3 and DynamoDB. To configure this is very simple. All needed to be done is set the following in the "main.tf" file.
+
+```
+
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "3.58.0"
+    }
+  }
+
+  backend "s3" {
+    bucket = "lexd-solutions-tfstate"
+    key    = "terraform/tfstate"
+    dynamodb_table = "lexd-solutions-tflockstate"
+    region = "ap-southeast-2"
+  }
+}
+```
+
+**VPC (Virtual Private Cloud)** ([vpc.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/vpc.tf))
+
+This is the very first building block on any AWS setup. Thanks to AWS modules I can easily define and create the following resources with just a few lines of code:
+
+- 1x VPC
+
+- 3x Availability Zones (3x private subnets and 3x public subnets)
+
+- 1x Internet Gateway
+
+- 4x Route Tables
+
+- 1x Network Access Control Lists
+
+Note: without using modules, I will have to write out and create each resources myself! this will not just be a few lines of code.
+
+**EC2 (ec2.tf), EC2 IAM Role (ec2-iam-role.tf) and Security Groups (security-groups.tf)**
+
+Update as of Jan 2022: The initial EC2 instance, IAM role and security group was to support the single MicroK8s machine. This has now been replaced by a 2 node cluster that is deployed using kubeadm.
+
+See my blog post here for more details: [Replacing MicroK8s with Kubernetes Cluster Created by kubeadm](https://lexdsolutions.com/2022/01/replacing-microk8s-with-kubernetes-cluster-created-by-kubeadm/).
+
+**Data Lifecycle Manager** ([dlm.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/dlm.tf))
+
+Data Lifecycle Manager provides automated EBS snapshots and the life cycle management of those snapshots (snapshot retention). Prior to 2018 (when DLM was made available), we had write our own code in AWS Lambda which calls on the AWS API and scheduled it via CloudWatch. We also had to manually set our own tags and code to manage the snapshot retention.
+
+Now thanks to Terraform and DLM, configuring automated EBS snapshots now is very simple, all I needed to do is create the IAM role, assign it to the DLM policy and lastly define the DLM policy/rule itself.
+
+## What's Next
+
+This concludes the first part to my "how I built this blog" series. I do want to apologise for not being able to dig deeper into each topic as they can get quite long. However, if you would like me to talk deeper into a certain topic, feel free to leave a comment or contact me using this [link](https://lexdsolutions.com/contact/) and let me know.
+
+For second part of this series, I will be talking about how I configured the OS (Ubuntu 20.04) using Ansible. If you would like to look ahead, the code can be found here on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/2-os-configuration).
+
+I hope you enjoyed this post I look forward to writing part two of this series.
+
+Next: Part 2 – [Ansible to Setup MicroK8s and a NFS Server on Ubuntu 20.04](https://lexdsolutions.com/2021/09/setting-up-microk8s-and-a-nfs-server-using-ansible/)

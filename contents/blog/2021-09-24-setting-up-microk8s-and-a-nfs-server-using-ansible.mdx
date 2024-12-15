@@ -1,0 +1,141 @@
+---
+title: "Ansible to Setup MicroK8s and a NFS Server on Ubuntu 20.04"
+description: >-
+  This is part 2 of 3 in my "how I built this blog" series.
+pubDate: "Sep 24 2021"
+heroImage: "../../assets/images/microk8s_ansible.png"
+category: Building this Blog
+tags:
+  - "how-i-built-this-blog"
+  - "scripts-and-automation"
+---
+
+**Update as of 10th Jan 2022**: I've rebuilt my blog over last Christmas. It is now running on a 2x node cluster that's provisioned using kubeadm. Deployment is the same as this post here, the new setup also uses Ansible. You can find the new post about this update here:
+
+https://lexdsolutions.com/2022/01/replacing-microk8s-with-kubernetes-cluster-created-by-kubeadm/
+
+This is part 2 of 3 to my “how I built this blog” series.
+
+If you haven't seen part 1 already, then please take a look at my previous blog "[Using CloudFormation and Terraform on my Brand New AWS Account](https://lexdsolutions.com/2021/09/using-cloudformation-and-terraform-on-my-brand-new-aws-account/)" as it shows how the base infrastructure is setup.
+
+## What is Ansible?
+
+Ansible is an open source configuration management software. It enables server configuration and application deployment through the use of infrastructure as code.
+
+Ansible does not require any software to be pre-installed on remote systems for it to work and this is what makes it 'agentless'. For Ansible to manage a Unix-like machines, all it needs is a SSH connection. Ansible can also manage Windows systems and all it needs is a WinRM connection.
+
+To define infrastructure as code using Ansible, you create template files which is written in YAML and these are called Ansible playbooks. You then execute the playbooks against an inventory of servers. The number of servers can range from 1 to thousands. Ansible will try execute them all in parallel (default is 5 forks but it can be changed if your server can handle it).
+
+## Infrastructure as Code - Declarative vs Imperative
+
+This is very interesting for me, so I would like to mention the differences between the two.
+
+In short, declarative allows you to define "what" you want and imperative is where you define "how" you want it.
+
+Ansible can be both declarative and imperative. Here are some examples:
+
+**Declarative:**
+
+Using the apt module.
+
+```yaml
+- name: Install base dependencies
+  ansible.builtin.apt:
+    name:
+      - snapd
+      - jq
+      - net-tools
+    state: present
+    update_cache: yes
+```
+
+The "what" we want here is the 3 APT packages and the state is "present". This is what allows Ansible to be idempotent (can be applied multiple times without changing the result). In this case, if these packages are already installed, Ansible will not install them again.
+
+**Imperative**:
+
+Using the shell module.
+
+```yaml
+- name: Configure kube config for current user with auto complete for bash
+  shell: |
+    cd .kube && microk8s config > config
+    chmod 600 config
+    echo "source <(kubectl completion bash)" >> ~/.bashrc
+  become_user: "{{ ansible_env.SUDO_USER }}"
+```
+
+The "how" we want is the commands we are explicitly executing. Due to the nature of being imperative, this does not allow Ansible to be idempotent with this task. The commands here will always be executed and changes to the file will always be changed (e.g. the file timestamp) even if the content of the file is the same.
+
+## Design Decisions
+
+As I already mentioned this in [part 1](https://lexdsolutions.com/2021/09/using-cloudformation-and-terraform-on-my-brand-new-aws-account/) of the series. From the very beginning, I wanted to keep costs to the minimum, yet providing me the exposure to using all the IaC tools I set out to use.
+
+In a high level overview, this is what Ansible is set out to configure and the reasons behind them.
+
+- **_MicroK8s_**
+
+    - Initial goal is to learn how to deploy applications onto Kubernetes (K8s).
+    - Easy to install and setup (as a snap package)
+
+    - Runs on the host itself, unlike Minikube where it must run under a VM or a container. Minikube does not work well with external networks, it only works great when running locally.
+    - Supports multi-nodes and is a production-grade K8s.
+- **_Master / Worker Node_**
+    - When building and testing on local VMs, I have a multi-node MicroK8s setup, but when I deployed it on AWS, I only started with a single instance to save costs.
+- **_NFS Server_**
+    - NFS server is configured on the master node to provide persistent volumes in K8s. Without this, I must use local volumes and this will not work when there is a multi-node cluster setup. Otherwise I must use AWS EFS which will endure additional cost!
+- **_CloudWatch Agent_**
+    - By default, AWS CloudWatch will not be able to see what is "inside" the EC2 instances. This includes how much disk space we are actually consuming within the OS. As I needed to configure CloudWatch alarms to notify me when the disk space is low and this is why CloudWatch agent is required.
+
+## The Ansible Playbook
+
+This section onwards will reference the source code located on my [**GitHub page**](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/2-os-configuration/old-microk8s).
+
+Note: This playbook requires _kubernetes.core_ module. This is installed via Ansible galaxy.
+
+**Hosts**
+
+This playbook is configured to run against a master node and a worker node. On AWS currently, I only have the master node deployed.
+
+**Variables**
+
+- **_k8s_cluster_subnet_** - This is the VPC CIDR which the EC2 instance is sitting on. It is later used to configure the NFS export.
+  - Note: I am allowing the VPC CIDR here because the security group itself is configured to allow NFS traffic from itself only. This means only the instances that are using the same security group can access this NFS server. Security group is like a virtual firewall which is attached to EC2 instances.
+- **export_path** - This is the path where Ansible will configure the NFS exports.
+- **snap_microk8s_channel** - The channel for snap to install MicroK8s.
+- **helm_binary_src** - The URL to the Helm binary which Ansible will use to download.
+- **k8s_mysql_\<prod|dev\>_secret_name** - Ansible will run the kubectl command and pre-configure a secret which contains the MySQL password.
+- **k8s_mysql_\<prod|dev\>_password** - This is the actual password for the `k8s_mysql_secret_name`. The password here is encrypted by using Ansible vault. When executing the playbook, we must provide the vault password so it can be decrypted first before execution.
+
+**Ansible Tasks**
+
+The playbook will include template files which are split out logically to perform different tasks.
+
+- **_Base Configuration_** (base-config.yml)
+    - Configures my personal settings and packages I would use.
+- **_Install and Setup CloudWatch Agent_** (setup-aws-cw-agent.yml)
+    - Installs CloudWatch agent as documented by AWS.
+
+    - Copies the pre-configured "cw-agent-config.json" over to the remote server and uses it to start up the agent.
+    - Note: The EC2 instance requires a role attached to it for this to work. This is configured by Terraform through ec-iam-role.tf. See the Terraform section from part 1 of this series to read more.
+- **Install and Configure MicroK8s** (setup-microk8s.yml)
+    - Download kubectl binary.
+    - Install MicroK8s using Snap
+    - Setup using the current user (ubuntu (non-root user)) and add it into the microk8s group. This group allows a standard user to run microk8s commands.
+    - Configures kubectl (kubeconfig) so it can access the k8s cluster instead of going via MicroK8s each time.
+    - Install Helm
+- _**Install and Configure NFS Server on the master node**_ (setup-nfs-server.yml)
+    - Install and configure the NFS server as defined by the Ansible variables.
+    - Use Helm to install _"nfs-subdir-external-provisioner"_. This allows Kubernetes to dynamically provision persistent volumes (PV) through persistent volume claims (PVC). The new PV's will be created as a sub directory on the NFS endpoint.
+- **_Create the Kubernetes namespaces and a secret for the MySQL password_** (main.yml)
+    - Creating both a production and development namespaces. This allows me to run two versions of this same deployment on this single cluster.
+    - Lastly, create the K8s secret for MySQL to later consume through the Helm chart deployment.
+
+## What's Next?
+
+This concludes part 2 to my “how I built this blog” series. In the final part of the series, I will talk about how WordPress and MySQL is actually deployed by using Helm Chart.
+
+If there is anything you would like me to dig deeper into the details, feel free to leave a comment below or reach out to me directly.
+
+Again, thanks for making it this far and I look forward to writing my next blog.
+
+Next: [Part 3 - Deploying WordPress and MySQL on Kubernetes using Helm Chart](https://lexdsolutions.com/2021/09/deploying-wordpress-and-mysql-on-kubernetes-using-helm-chart/)
