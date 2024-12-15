@@ -1,0 +1,287 @@
+---
+title: "AWS - How to Assume Role using Python"
+description: >-
+  When you have dozens of AWS accounts to manage, e.g. dev, test, staging, prod etc. then IAM roles can also be used to allow for cross account access. This way you do not need to create multiple IAM users in each of those accounts.
+pubDate: 2021/09/29
+heroImage: '../../assets/images/AssumeRole.jpg'
+category: Automation
+tags:
+  - "aws"
+  - "python"
+  - "security"
+---
+
+This post is related to IAM users only. If you are using SSO (Single Sign On) services like ADFS or Okta to log into AWS, then this will not apply to you. However, behind the scenes SSO still uses roles to grant permissions to a user once they have authenticated into AWS.
+
+When you have dozens of AWS accounts to manage, e.g. dev, test, staging, prod etc. then IAM roles can also be used to allow for cross account access. This way you do not need to create multiple IAM users in each of those accounts.
+
+For this blog I will be focusing on elevating privileges, however the code mentioned here can be modified slightly for multi account access.
+
+## IAM Permissions and Policies
+
+It is good to first understand how permissions are granted in AWS IAM. There are multiple ways to grant permissions to a user or a service, here are some examples:
+
+- Attach an inline policy, AWS managed policy or a customer managed policy directly to a **user**.
+- Attach an inline policy, AWS managed policy or a customer managed policy directly to a **group**.
+- Attach an inline policy, AWS managed policy or a customer managed policy directly to a **role**.
+
+In my AWS account I only have a single IAM user, so creating a group was not necessary. In this post, I will explain my setup and how these pieces are first put together to give you a better understanding on how this all works.
+
+### IAM User
+
+When I first setup my new AWS account, I've created all the initial resources including this IAM user by using CloudFormation and Terraform. This was covered in my [previous post](https://lexdsolutions.com/2021/09/using-cloudformation-and-terraform-on-my-brand-new-aws-account/).
+
+It is not a good practice to use the AWS root account (the account used to sign up with AWS). Instead an IAM user should be created to manage the AWS cloud infrastructure.
+
+Most people would at this stage simply grant the _AdministratorAccess_ policy to their first IAM user. This policy allows all actions to all resources as indicated by the policy JSON below.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "*",
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+**Security Concerns**
+
+Over the years, many IT professions should know by now that:
+
+1. Logging onto any Linux server using the root account is a very bad idea. Instead a user should be logging in by using a standard user and then use sudo for any privileged access.
+2. This also applies to Windows domain environments. Security policies often restrict administrators from using their "_domain administrator and/or enterprise administrator"_ accounts in general. All administrators are expected to use their standard accounts for day to day tasks and only elevate to their administrator accounts when is required.
+
+This security logic should also apply to AWS and it is made possible by using AWS Roles.
+
+Policies to Allow for Assume Role
+
+By default, without any policies assigned to the IAM user, they will have zero access in AWS.
+
+This is the CloudFormation resource that created my initial IAM user. Take note of the "_ManagedPolicyArns_" property.
+
+```yaml
+FirstIAMUser:
+  Type: AWS::IAM::User
+  Properties:
+    UserName: !Ref IAMUsername
+    LoginProfile:
+      Password: !Ref IAMUserPassword
+      PasswordResetRequired: yes
+    ManagedPolicyArns:  # <<<<<<<<<<<<<<<<<<<<<<<<<<
+      - arn:aws:iam::aws:policy/IAMUserChangePassword
+      - !Ref AssumeRolePolicy
+      - !Ref IAMSelfServicePolicy
+```
+
+The ARN that allows this user to AssumeRole is the "_!Ref AssumeRolePolicy_". This references the following managed policy resource that will allow my user to use the action "_sts:AssumeRole_" and into my role called "_LEXD-Admin_"
+
+```yaml
+AssumeRolePolicy:
+  Type: AWS::IAM::ManagedPolicy
+  Properties:
+    Description: "LEXD - AssumeRole Policy"
+    PolicyDocument:
+      Version: "2012-10-17"
+      Statement:
+        - Effect: "Allow"
+          Action:
+            - sts:AssumeRole
+          Resource:
+            - !Sub "arn:aws:iam::${AWS::AccountId}:role/LEXD-Admin"
+```
+
+Note: To allow for cross account access, replace `${AWS::AccountId}` with `*`. This will allow the user to assume role into all AWS accounts (as long as the target role allows you to do so).
+
+### IAM Role
+
+As shown above, the IAM role which I need to assume into is called "LEXD-Admin". This role is created by the following CloudFormation resource.
+
+```yaml
+LexdAdminRole:
+  Type: AWS::IAM::Role
+  Properties:
+    RoleName: LEXD-Admin
+    ManagedPolicyArns:  # <<<<<<<<<<<<<<<<<<<<<<<<<<
+      - arn:aws:iam::aws:policy/AdministratorAccess
+    MaxSessionDuration: 7200  # 2 hours
+    AssumeRolePolicyDocument:  # <<<<<<<<<<<<<<<<<<<<
+      Version: "2012-10-17"
+      Statement:
+        # Trust own account but enforce MFA to use this role.
+        - Effect: Allow
+          Principal:
+            AWS:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+            - sts:AssumeRole
+          Condition:
+            Bool:
+              aws:MultiFactorAuthPresent: 'true'
+```
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+Note: To allow cross account access, replace `${AWS::AccountId}` with the source AWS account ID that contains the IAM users.
+
+Properties from the above.
+
+- _ManagedPolicyArns_ - This role is grants AdministratorAccess to the account. However you can configure any policies here you like.
+- AssumeRolePolicyDocument - This falls under the "trust relationships" section in the IAM console. This basically allows itself to assume into this role (this AWS account) as referenced by `${AWS::AccountId}`. However the condition is that the IAM user must have MFA (Multi Factor Authentication) enabled.
+
+## Assume Role through AWS Console
+
+Before looking at code, let's see how this is done from the AWS console.
+
+First log into AWS by using the IAM user. This user by default will have no access to anything, however it is allowed to use assume role.
+
+Example: I have no access to see any EC2 instances
+<ImageZoom src="/images/2021-09-29-14_15_17-Window.png" client:load />
+
+To assume role, use the Switch Roles option.
+<ImageZoom src="/images/2021-09-29-14_20_48-Window.png" client:load />
+
+Enter your AWS account alias or AWS account ID and the role to assume into. Note: The role name is case sensitive!
+<ImageZoom src="/images/2021-09-29-14_23_17-Window.png" client:load />
+
+Once the role is successfully switched, we can now see the EC2 resource thanks to my Admin Role policy.
+<ImageZoom src="/images/2021-09-29-14_24_40-Window.png" client:load />
+
+## Assume Role using Python
+
+Note: This script only applies to Linux (also works under WSL (Windows Subsystem for Linux)). This is where I've developed the script.
+
+This section references the code on my [**GitHub page**](https://github.com/88lexd/lexd-solutions/tree/main/misc-scripts/python-aws-assume-role).
+
+When using _awscli_, by default it will look into the file "_$HOME/.aws/credentials_" file for the access and secret access keys. This key pair enables API access into AWS so you can manage your cloud infrastructure via CLI tools and/or SDK's.
+
+My script will use the initial credential to assume role and then store the new temporary credentials into this same file under the user input profile name.
+
+To begin, first create the access key for the standard IAM user.
+<ImageZoom src="/images/2021-09-29-14_34_23-Window.png" client:load />
+
+Then save the access key and secret access key into the **cred.yml** file. Example:
+
+```yaml
+---
+user_arn: arn:aws:iam::123456789:user/alex
+region: ap-southeast-2
+aws_access_key_id: xxx
+aws_secret_access_key: yyy
+```
+
+Next, create another file called **roles.yml** and this file will contain the roles which the account is allowed to assume into. Note: Can include roles from a completely different AWS account if permission is allowed for you to assume the role.
+
+```yaml
+---
+- name: My Admin Role
+  aws_account_id: 123456789
+  role_name: My-Admin-Role
+
+# Supports connecting to another AWS account.
+# As long as the target account role allows you to assume into that role.
+- name: My Other Admin Role
+  aws_account_id: 987654321
+  role_name: My-Admin-Role
+```
+
+If not yet already done so, ensure Python3 and virtual environment is installed.
+
+Execute the **setup.sh** file to setup the environment and dependencies.
+
+Remember to save the _alias_ as indicated by the script output. Example:
+
+```shell
+$ bash setup.sh
+<output truncated>
+...
+Successfully installed blessings-1.7 boto3-1.18.49 botocore-1.21.49 configparser-5.0.2 curtsies-0.3.7 cwcwidth-0.1.4 enquiries-0.1.0 jmespath-0.10.0 python-dateutil-2.8.2 pyyaml-5.4.1 s3transfer-0.5.0
+
+=============================================================================
+Append the following line to your .bashrc as an alias for easy script trigger
+=============================================================================
+alias assume-role='/home/alex/code/git/lexd-solutions/misc-scripts/python-aws-assume-role/venv/bin/python3 /home/alex/code/git/lexd-solutions/misc-scripts/python-aws-assume-role/assume-role.py '
+```
+
+Execute the script by calling "**assume-role**" from the command line. Example:
+
+```shell
+$ assume-role --cred-file ~/cred.yml --roles-file ~/roles.yml --profile alex
+
+===================================
+AWS Assume Role Script by Alex Dinh
+===================================
+Choose a role to assume into:
+  [0] Exit
+> [1] My Admin Role (My-Admin@12345)
+  [2] My NonAdmin Role (My-NonAdmin@56789)
+
+Enter MFA token code for [ arn:aws:iam::12345:user/myusername ]: 123456
+
+Assuming role to: arn:aws:iam::12345:role/My-Admin
+Successfully assumed role!
+Updating /home/alex/.aws/credentials file...
+
+Your new AWS credentials will now work with awscli. e.g.
+$ aws ec2 describe-instances --profile alex
+```
+
+- `--cred-file` : This is the cred.yml file created earlier
+- `--roles-file` : This is the roles.yml file created earlier
+- `--profile` : This is the profile name to save the temporary credentials as
+
+_assume-role_ will update the AWS credentials file with the new profile. Test the new profile by running an _awscli_ command with _\--profile_ argument. Example:
+
+```
+$ aws ec2 describe-instances --profile alex | jq '.Reservations[].Instances[].InstanceId'
+"i-02bfd9dafcfxxxxxx"
+```
+
+The credential for this role do not last forever, by default it is only valid for 1 hour. To change this, the role's "MaxSessionDuration" needs to match the assume role method used in the script.
+
+To check when this temporary credentials expire, run the script by passing in --expiry argument. Example:
+
+```
+$ assume-role --profile alex --expiry
+===================================
+AWS Assume Role Script by Alex Dinh
+===================================
+The AWS profile alex has 59 minutes remaining
+```
+
+## Custom bash prompt (PS1)
+
+On 2nd March 2022, I wrote a post on how I created my own custom bash prompt to show the profile expiration. Check it out my [post here](https://lexdsolutions.com/2022/03/customizing-bash-prompt-ps1-to-show-aws-credential-expiration/).
+
+Example:
+<ImageZoom src="/images/assume-role-image-1.png" client:load />
+
+## Conclusion
+
+For security, we should always follow the least privileged model. In an enterprise environment, I would have the following setup by using multiple AWS accounts.
+
+- **Account 1 - IAM Users**
+    This account will contain all the IAM users which are then added into IAM groups.
+
+    The IAM groups will have permissions attached to them that will grant them access to assume roles into other AWS accounts.
+
+- **Account 2 - Dev**
+    Use for development purposes only. See it as the playground area.
+
+    The IAM role here can contain full permissions to various AWS services such as EC2, S3, RDS, etc. This will allow developers and administrators to try out various things by first building out by hand.
+
+- **Account 3 - Staging/UAT**
+    The IAM role here should only be consumable by CI/CD tools or services like CodePipeline. This will enforce Infrastructure as Code (IaC) by following GitOps practice.
+
+    Another IAM role can be created with limited access. This will allow developers and system administrators to debug any issues.
+
+- **Account 4 - Production**
+    The IAM role here should be the same as the staging/UAT where only CI/CD tools or services like CodePipeline is able to make changes to this account.
+
+    Another IAM role can be created with read only access. This will allow developers and system administrators to look into any production issues and then have them fixed up in staging/UAT before deploying the same changes through IaC and into production.
+
+The above design will enable the use of a single IAM user to access all the different AWS accounts by simply using assume role into each of these accounts.
+
+I hope this post has been informative for you. As always, if you have any comments or feedback, please use the comment section below or can reach out to me directly by using the contact menu.
