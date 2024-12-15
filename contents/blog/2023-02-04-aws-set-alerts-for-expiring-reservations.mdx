@@ -1,0 +1,33 @@
+---
+title: "AWS - Set alerts for expiring reserved instances!"
+description: >-
+  Alwasy remember to set alerts for expiring reserved instances
+pubDate: 2023/02/04
+category: How To
+tags:
+  - "aws"
+heroImage: "../../assets/images/AWS-RI-Expiration-Alert.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+This is a short post. Today I received a shocked bill from AWS where my bill was increase by almost 50%.
+
+<ImageZoom src="/images/reserve-image.png" client:load />
+
+I know my resource consumption haven't changed so I was initially shocked by what was causing this!
+
+After about 5-10 minutes of clicking around, I remembered I've paid for 2x Reserve Instances (RI) awhile ago and thought this might be the case and it was!
+
+<ImageZoom src="/images/reserve-image-1.png" client:load />
+
+My RI expired but AWS didn't notify me by default. After a quick Google search, we actually have to enable the notification manually, so I recommend everyone to do this ASAP if you have purchased any RI for your AWS accounts or for your AWS Organisations.
+
+To do this, go to AWS Cost Management > Overview > Manage alert subscriptions.
+
+<ImageZoom src="/images/reserve-image-2.png" client:load />
+
+Set your alert frequency and email recipient and click save
+
+<ImageZoom src="/images/reserve-image-3.png" client:load />
+
+Hopefully next time I will be reminded to renew the RI before it expires and get hit with another surprised bill.

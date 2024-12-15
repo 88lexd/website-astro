@@ -1,0 +1,94 @@
+---
+title: "Supercharge PowerShell using ForEach and ArrayList"
+description: >-
+  Go fast when with PowerShell when processing large amounts of data
+pubDate: 2022/10/23
+category: Tips and Tricks
+tags:
+  - "powershell"
+heroImage: "../../assets/images/Supercharge-PowerShell.png"
+---
+
+I feel like I don't post enough about PowerShell related topics, so here is a useful and interesting one.
+
+We all had to deal with a large amount of data processing at one point in our scripts. In this post, I will talk about how using ForEach loop and ArrayList can make a big impact on PowerShell performance.
+
+I'll first start with the slowest method as baseline and as I optimise the code, you can see the performance difference.
+
+**Scenario:** I need to create 20,000 unique usernames. The usernames will be named from "user1" through to "user20000".
+
+The script will first generate a list of numbers ranging from 1 to 20,000, then I will loop through each number to create a unique username.
+
+## Baseline
+
+The following script will get me what I wanted, however this is the slowest method without any optimisation.
+
+```powershell
+Measure-Command {
+  $myList = @()
+  1..20000| ForEach-Object {
+    $myList += "user$($_)"
+  }
+} | Select-Object TotalMilliseconds | Format-List | Out-Host
+```
+
+**Output**: TotalMilliseconds : 8082.1093
+
+## Optimise 1 - use ForEach loop
+
+To make the baseline script faster, we can use "ForEach" instead of "ForEach-Object".
+
+I_mportant note_: ForEach will allocates everything to memory before processing. For very large datasets, you may run out of memory.
+
+```powershell
+Measure-Command {
+  $myList = @()
+  ForEach ($num in (1..2000)) {
+    $myList += "user$($num)"
+  }
+} | Select-Object TotalMilliseconds | Format-List | Out-Host
+```
+
+**Output**: TotalMilliseconds : 55.7869
+
+That's super fast! but we can try go even faster!
+
+## Optimise 2 - use ArrayList
+
+By default, when we set a variable using @() in PowerShell, this will create us an Array object. Example:
+
+```raw
+PS C:\> $myVar = @()
+PS C:\> $myVar.GetType()
+
+IsPublic IsSerial Name                                     BaseType
+-------- -------- ---- --------
+True     True     Object[]                                 System.Array
+```
+
+Since arrays are fixed length, each time we perform a "+=" action, a new array needs to be created with that new additional element.
+
+ArrayList does not have a fixed length so new elements can be added into the list with minimal overhead.
+
+Here is my most optimal script.
+
+```powershell
+Measure-Command {
+  [System.Collections.ArrayList]$myArrayList= @()
+  ForEach ($num in (1..2000)) {
+    $myArrayList.Add("user$($num)")
+  }
+} | Select-Object TotalMilliseconds | Format-List | Out-Host
+```
+
+**Output:** TotalMilliseconds : 5.4332
+
+Can you believe that!? it only took 5.43 milliseconds to complete!?
+
+## Conclusion
+
+With such optimisation in the code, I have successfully made this script 148,754% faster! dropping the original script down from 8082.1 milliseconds to only just 5.4 milliseconds.
+
+It is important to remember that when using ForEach, you must be mindful of the memory consumption especially when the objects you are storing are very large.
+
+I hope you find this tip useful and can start optimising your PowerShell scripts!
