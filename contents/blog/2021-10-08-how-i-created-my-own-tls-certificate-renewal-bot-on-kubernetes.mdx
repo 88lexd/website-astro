@@ -1,0 +1,210 @@
+---
+title: "How I Created my own TLS Certificate Renewal Bot on Kubernetes"
+description: >-
+  How I created a bot to auto renew the TLS certificate which is issued by Let's Encrypt.
+pubDate: 2021/10/08
+category: Building this Blog
+tags:
+  - "kubernetes"
+  - "python"
+  - "tls"
+heroImage: "../../assets/images/CertRenewBot2.png"
+---
+
+This post is about how I created a bot to auto renew the TLS certificate which is issued by Let's Encrypt.
+
+To start off, there are many existing tools out there that can do this. One of the most popular being [cert-manager](https://cert-manager.io/).
+
+Note: This bot is designed to be used by this site only. If you've deployed the same Helm Chart from my GitHub repository, then it will also work for you.
+
+I went to build my own is because there is no better learning experience than doing things yourself.
+
+From building this project, I got to deep dive into learning the following:
+
+- Kubernetes RBAC (roles, role bindings and service accounts)
+- Kubernetes CronJobs
+- Kubernetes API (Kubernetes Python Client)
+- Remote Development inside a Kubernetes Pod/Container (VS Code + Okteto)
+- Building Docker images
+- Using GitHub Actions to automate build and push image over to Docker Hub
+
+The source code for my bot can be found on my [GitHub repository](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lets-encrypt-cron-img).
+
+## Kubernetes RBAC
+
+RBAC (Role Based Access Control) enables the administrator to delegate access and permissions to a certain group of users or services. Without RBAC configured, users/service accounts will by default have full access to all resources in the cluster.
+
+As I am using MicroK8s, to enable RBAC all I need to do is run the following command.
+
+```
+$ microk8s enable rbac
+```
+
+For other types of Kubernetes deployments, follow what is documented on the [official documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/):
+
+To enable RBAC, start the API server with the _\--authorization-mode_ flag set to a comma-separated list that includes RBAC; for example:
+
+```shell
+kube-apiserver --authorization-mode=Example,RBAC --other-options --more-options
+```
+
+To confirm this change on MicroK8s, we can check the --apiserver-args.
+
+```shell
+$ ps ax | grep -v 'grep' | grep -Po ' /.+kubelite.+' | sed 's/--/\n--/g'
+ /snap/microk8s/2546/kubelite
+--scheduler-args-file=/var/snap/microk8s/2546/args/kube-scheduler
+--controller-manager-args-file=/var/snap/microk8s/2546/args/kube-controller-manager
+--proxy-args-file=/var/snap/microk8s/2546/args/kube-proxy
+--kubelet-args-file=/var/snap/microk8s/2546/args/kubelet
+--apiserver-args-file=/var/snap/microk8s/2546/args/kube-apiserver    <<<<< This is what we're interested in
+--kubeconfig-file=/var/snap/microk8s/2546/credentials/client.config
+--start-control-plane=true
+
+$ cat /var/snap/microk8s/2546/args/kube-apiserver | grep authorization
+--authorization-mode=RBAC,Node
+```
+
+## Creating the Service Account, Role and Role Binding
+
+I am using my existing Helm Chart to create these resources and the 2 template files are:
+
+- [service-account.yaml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/3-app-configuration/wordpress-helm/templates/service-account.yaml)
+- [role-rolebinding.yaml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/3-app-configuration/wordpress-helm/templates/role-rolebinding.yaml)
+
+**Service Account**
+
+The service account has been granted access to the API via the role binding. Inside the container, the service account's access token is stored in the following location:
+
+_/var/run/secrets/kubernetes.io/serviceaccount_
+
+The CronJob is also configured to use this service account as per the following code snippet.
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: lets-encrypt-cron
+spec:
+  schedule: "0 23 */7 * *"  # Every 7 days at 11PM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ .Values.lets_encrypt.service_account_name }} # <<<<< Uses the values.yaml file from Helm.
+          automountServiceAccountToken: true
+...
+```
+
+**Role**
+
+The role contains rules in which the service account will be able to do through the API. Here is a snippet of what is allowed.
+
+```yaml
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "configmaps"]
+  verbs: ["get"]
+  resourceNames: [
+    "{{ .Values.lets_encrypt.account_key_secret_name }}",
+    "{{ .Values.lets_encrypt.pivate_key_secret_name }}",
+    "{{ .Values.lets_encrypt.csr_configmap_name }}"
+  ]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["list", "create"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["delete"]
+  resourceNames: ["{{ .Values.wordpress.ingress_tls_secret_name }}"]
+```
+
+**Role Binding**
+
+Role binding is very simple, it binds an existing role to one or many subjects. This my case, it is a single service account.
+
+## Docker Image (running my own code)
+
+As I have built my own bot, I also needed to create my own docker image so Kubernetes is able to use it to spin up a pod/container.
+
+The source code for this is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lets-encrypt-cron-img).
+
+**Remote Development with Okteto**
+
+My code depends on the service account's security token to access the Kubernetes API and so I needed the code to run from within the container itself. With traditional remote development, I cannot hook my VS Code inside a container that's been created by Kubernetes. I can only create and debug with local docker containers.
+
+The saviour came when I learnt about [Okteto](https://okteto.com/)! this allowed me to launch a pod in Kubernetes and Okteto is then able to hook my local machine into the container.
+
+It also provides a constant file synchronisation between my local machine with the remote pod and it also enabled me to use the VS Code's native debugger. If you code in Python for a container to run inside Kubernetes, I highly suggest you to take a look at their blog [here](https://okteto.com/blog/how-to-develop-python-apps-in-kubernetes/).
+
+I have also documented how I configured and use Okteto on [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lets-encrypt-cron-img).
+
+## GitHub Actions (CI/CD)
+
+When code is committed and pushed/merged into my main branch on GitHub, GitHub Actions will pick up the change and starts building a Docker image automatically. It will also push this new image onto Docker Hub.
+
+The GitHub Action is configured so it will only run when there are changes made in the path _/aws-wordpress/3-app-configuration/lets-encrypt-cron-img/\*\*_
+
+By doing so, I will not be triggering unnecessary actions when unrelated code in the repository is changed.
+
+The GitHub Action is defined as a YAML, to see what it does you can see it [here](https://github.com/88lexd/lexd-solutions/blob/main/.github/workflows/lets-encrypt-cron-img.yml).
+
+## Let's Encrypt
+
+Let's Encrypt is a non-profit CA (Certificate Authority). Anyone can submit a CSR (Certificate Signing Request) to receive a digital certificate for their domain.
+
+To get a certificate, you just need to follow the ACME protocol and complete the challenge.
+
+There are many existing scripts out there that can help with this ACME challenge. I have chosen to use [acme-tiny](https://github.com/diafygi/acme-tiny) as it was the most simple.
+
+**Kubernetes Secrets**
+
+Secrets are used to store the private keys for the account and to sign the CSR.
+
+I did not want to create the secrets by hand, so these are created by Ansible that handles the OS configuration. It uses Ansible vault to encrypt the data. You can see it [here](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/main.yml) and look for line _file: vars/lets-encrypt.yml_
+
+**ACME Challenge**
+
+To prove that I own the domain name (lexdsolutions.com), I have to host some files that is publicly accessible. I did not want to create another ingress for this so I used the existing persistent volume (PV) for the WordPress deployments (which is what this blog runs on). I mounted this same volume and then stored the challenge files on there.
+
+## The Kubernetes CronJob
+
+The CronJob resource is like a crontab in Linux. Use this to schedule jobs.
+
+This resource is created as part of my Helm Chart and you can see the template file [here](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/3-app-configuration/wordpress-helm/templates/lets-encrypt-cronjob.yaml).
+
+When Kubernetes trigger this cronjob, it will spin up a container to run the code defined in the image. I also pass in additional environmental variables so when running from different namespaces, it will be able to handle that. Such as different ingress URL's and names of the secrets.
+
+Example of what happens when the cronjob runs:
+
+```
+$ kubectl -n prod get cronjobs.batch
+NAME                SCHEDULE        SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+lets-encrypt-cron   56 19 */7 * *   False     0        20s             26h
+
+$ kubectl get job -n prod
+NAME                         COMPLETIONS   DURATION   AGE
+lets-encrypt-cron-27228056   1/1           9s         31s
+
+$ kubectl get pods -n prod
+NAME                               READY   STATUS      RESTARTS   AGE
+wordpress-7b7bbfc5dc-bkj8d         1/1     Running     1          8d
+wordpress-7b7bbfc5dc-nckgm         1/1     Running     1          8d
+mysql-wordpress-5d69547997-6mvnk   1/1     Running     2          21d
+lets-encrypt-cron-27228056-8z5bv   0/1     Completed   0          50s
+
+$ kubectl logs -n prod lets-encrypt-cron-27228056-8z5bv
+Checking ingress URL for current certificate
+Current certificate has more than 30 days before it expires. (expires on 16/12/2021)
+Script completed
+```
+
+My bot is scheduled to run every 7 days and it will only renew the certificate if it has less than 30 days until expiry. You can see from the example above, the current certificate expires on 16/12/2021 so the script completed successfully.
+
+## What's Next
+
+As I have completed this bot and gained some extraordinary skills, for my next project I will be building a monitoring script to check on the HTTPS endpoints and send out email notification when they are coming to expire.
+
+This may be running on AWS Lambda or another Kubernetes CronJob, I haven't decided yet. The source list of URL's may be coming from DynamoDB, an S3 object or even via the K8s API for all the current Ingress hosts URLs. Let's see how I feel when I start working on the that.
+
+Thanks again for making it this far!
