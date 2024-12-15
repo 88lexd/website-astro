@@ -1,0 +1,356 @@
+---
+title: "Triggering AWS CodeDeploy from S3 event via Lambda"
+description: >-
+  Trigger AWS CodeDeploy from S3 event via Lambda...
+pubDate: 2022/10/13
+category: Building this Blog
+tags:
+  - "aws"
+  - "codedeploy"
+  - "kubernetes"
+  - "lambda"
+  - "python"
+  - "terraform"
+heroImage: "../../assets/images/AWS-CodeDeploy.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+Recently my brother developed his own [todo web app](https://todo.henrydinh.net/) for his personal project. He needed to host this online and so I told him that he can create a container image and I'll host it in my Kubernetes cluster on AWS. The web app code is open sourced and is available on his [GitHub repository](https://github.com/HenryDinh86/my-todo-app).
+
+To help automate the deployment of this application, I have assisted my brother in setting up GitHub Actions to auto push the container image over to Docker Hub and to upload the zip artefact over to my S3 bucket for auto deployment.
+
+## Design Decisions
+
+Before we go further, I would like to cover some of the design decisions I had to go through.
+
+- **Not using GitHub Webhooks** - for a small project and to save cost, I do not want to setup an API gateway, instead I suggested to use GitHub Actions to perform a push to my S3 bucket when he does a code release on his repository. More details on how this works will be covered below in this post.
+- **Not using AWS CodePipeline** - Code changes are not made very often and I do not want to pay for an active pipeline even though is cheap to do so. Instead I have opted to use my own Lambda function to trigger CodeDeploy.
+- **Deploy only to a single environment -** The web app that is hosted on AWS is classified as "production", all development and testing my brother does is on his local machine and is tested against a non production database.
+- **Using K8s master** - I am only running a single master and a single worker node in my setup. It just makes sense to run the deployment directly on the master server for now. Otherwise I will need to use CodeBuild to retrieve the kubeconfig from Secrets Manager to access the kube-apiserver etc. I just wanted to keep this simple for now.
+
+## High Level Design
+
+A picture tells a thousand words. The diagram here shows the flow on how this application is automatically deployed onto my Kubernetes cluster.
+<ImageZoom src="/images/CodeDeploy-from-S3-event.png" client:load />
+
+## The different components
+
+From here onwards I will explain each piece and how they function.
+
+**Note:** _As with all things in my setup, all AWS resources are provisioned via Terraform and therefore, I will be showing snippets of the code I used._
+
+To see the full source code, you can visit our public GitHub repositories
+
+- WebApp - [https://github.com/HenryDinh86/my-todo-app](https://github.com/HenryDinh86/my-todo-app)
+- Automation on AWS end - [https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/1-infra-configuration/2-general-setup](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/1-infra-configuration/2-general-setup)
+
+**GitHub Actions**
+
+It all starts from GitHub Actions triggering the workflow when a release is created. You can view the actual workflow here on the [GitHub](https://github.com/HenryDinh86/my-todo-app/blob/main/.github/workflows/docker-build.yml).
+
+The most important part in the workflow for the purpose of this post will be the 2 stages below:
+
+```yaml
+- name: zip k8s-helm directory
+  run: |
+    cd ./k8s-helm/
+    sed -i "s/_VERSION_TAG_FROM_CI_/${{ github.event.ref }}/g" values.yaml
+    zip -r henry_todo_app.zip .
+
+- name: Custom docker container action to push object to S3
+  uses: ./.github/actions/push-object-to-s3
+  with:
+    aws_access_key_id: ${{ secrets.AWS_S3_ACCESS_KEY }}
+    aws_secret_access_key: ${{ secrets.AWS_S3_SECRET_KEY }}
+    aws_region: ap-southeast-2
+    aws_s3_bucket_name: lexd-solutions-codedeploy
+    source_file: ./k8s-helm/henry_todo_app.zip
+    destination_path: /
+    destination_file_name: henry_todo_app.zip
+```
+
+The first stage will zip the Helm chart directory which also contains the "appspec.yml" for CodeDeploy to use later.
+
+The second stage will use a custom GitHub Action to push the zip object to S3.
+
+**IAM API user permission for GitHub**
+
+There is a dedicated IAM user which is granted with the minimal permissions to push objects to S3. The access and secret key is generated and saved into GitHub secrets for the pipeline to consume.
+
+```hcl
+resource "aws_iam_user" "github_ci_to_s3" {
+  name = "api_github-ci-to-s3"
+}
+
+resource "aws_iam_user_policy" "github_ci_to_s3_policy" {
+  name = "general-setup-github-ci-to-s3"
+  user = aws_iam_user.github_ci_to_s3.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "s3:PutObject"
+        Effect = "Allow"
+        Resource = [
+          "${aws_s3_bucket.lambda_s3_bucket.arn}",
+          "${aws_s3_bucket.lambda_s3_bucket.arn}/*",
+          "${aws_s3_bucket.codedeploy_s3_bucket.arn}",
+          "${aws_s3_bucket.codedeploy_s3_bucket.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+```
+
+**S3 Bucket and Event Notification**
+
+A dedicated bucket is used for GitHub to push the zip object into. A bucket notification is also configured to trigger the Lambda function to execute CodeDeploy.
+
+```hcl
+resource "aws_s3_bucket" "codedeploy_s3_bucket" {
+  bucket = var.codedeploy_s3_bucket_name
+  acl    = "private"
+
+  versioning {
+    enabled = true
+  }
+
+  lifecycle_rule {
+    enabled = true
+
+    abort_incomplete_multipart_upload_days = 1
+
+    noncurrent_version_expiration {
+      days = 3
+    }
+
+    expiration {
+      expired_object_delete_marker = true
+    }
+  }
+}
+
+resource "aws_s3_bucket_notification" "codedeploy_s3_notification" {
+  bucket = aws_s3_bucket.codedeploy_s3_bucket.id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.codedeploy_lambda.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_suffix       = ".zip"
+  }
+}
+```
+
+**CodeDeploy Lambda Function**
+
+A Python based Lambda function is created directly by using the "data.archive\_file" function in Terraform. This way I do not need to first upload the source code onto S3 before deploying my function.
+
+Important note: _The following is only a snippet of how the Lambda is created. To see all the code, check out my [lambda\_codedeploy.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/lambda_codedeploy.tf) file._
+
+```hcl
+resource "aws_lambda_function" "codedeploy_lambda" {
+  function_name = "codedeploy_s3_lambda"
+
+  filename         = data.archive_file.codedeploy_lambda_zip.output_path
+  source_code_hash = filebase64sha256(data.archive_file.codedeploy_lambda_zip.output_path)
+
+  runtime = "python3.8"
+  handler = "codedeploy_lambda.handler"
+  timeout = 15
+
+  role = aws_iam_role.codedeploy_lambda_role.arn
+
+  environment {
+    variables = {
+      APP_NAME          = aws_codedeploy_deployment_group.henry_todo_deploy_group.app_name
+      DEPLOY_GROUP_NAME = aws_codedeploy_deployment_group.henry_todo_deploy_group.deployment_group_name
+    }
+  }
+}
+
+resource "aws_lambda_permission" "allow_codedeploy_bucket" {
+  statement_id  = "AllowExecutionFromS3Bucket"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.codedeploy_lambda.arn
+  principal     = "s3.amazonaws.com"
+  source_arn    = aws_s3_bucket.codedeploy_s3_bucket.arn
+}
+```
+
+Since S3 event notification is triggering Lambda, it will pass the event data over to Lambda so we can extract the bucket name and the object key.
+
+Example:
+
+```python
+def handler(event, context):
+    set_logging(log_level='info')
+
+    logging.debug("Getting event info")
+    event_time = event['Records'][0]['eventTime']
+    bucket_name = event['Records'][0]['s3']['bucket']['name']
+    object_key = event['Records'][0]['s3']['object']['key']
+
+    ... <truncated>
+
+    logging.info("Creating deployment via boto3")
+    codedeploy_client = boto3.client('codedeploy')
+    deployment = codedeploy_client.create_deployment(
+        applicationName=app_name,
+        deploymentGroupName=deployment_group_name,
+        description='Lambda created deployment from S3',
+        revision={
+            'revisionType': 'S3',
+            's3Location': {
+                'bucket': bucket_name,
+                'key': object_key,
+                'bundleType': 'zip'
+            }
+        }
+    )
+
+    logging.info(deployment)
+    logging.info("Deployment created!")
+
+... <truncated
+```
+
+For the full source code, see [codedeploy\_lambda.py](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/lambdas/codedeploy_lambda.py).
+
+**CodeDeploy**
+
+A CodeDeploy application and deployment group is created. The deployment group uses tags to filter the Kubernetes master server and it will run the appspec.yml which is packaged up by the GitHub Actions when it uploads the zip file to S3.
+
+```hcl
+resource "aws_iam_role" "codedeploy_role" {
+  name = "codedeploy-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "codedeploy.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"]
+}
+
+
+resource "aws_codedeploy_app" "henry_todo_app" {
+  name             = "henry-todo-app"
+  compute_platform = "Server"
+}
+
+resource "aws_codedeploy_deployment_group" "henry_todo_deploy_group" {
+  app_name              = aws_codedeploy_app.henry_todo_app.name
+  deployment_group_name = "henry-todo-deployment-group"
+  service_role_arn      = aws_iam_role.codedeploy_role.arn
+
+  ec2_tag_set {
+    ec2_tag_filter {
+      type  = "KEY_AND_VALUE"
+      key   = "Name"
+      value = var.ec2_k8smaster_instance_name
+    }
+  }
+}
+
+```
+
+**CodeDeploy Agent**
+
+CodeDeploy agent is required to be installed on the Kubernetes master server where the deployment group is targeting via the "ec2\_tag\_filter". The agent is installed as part of my OS configuration via Ansible.
+
+See: [setup-aws-codedeploy-agent.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-aws-codedeploy-agent.yml)
+
+**appspec.yml**
+
+For CodeDeploy to know how to run the deployment, it reads the "[appspec.yml](https://github.com/HenryDinh86/my-todo-app/blob/main/k8s-helm/appspec.yml)". In this setup, the shell script will check if the namespace already exist, if not create one and will perform a "helm upgrade" if the application is already installed, or will do a "helm install" if it doesn't exist.
+
+Example:
+
+```bash
+#!/bin/bash
+
+APP_NAMESPACE="prod"
+APP_NAME="todo-app"
+
+if [[ $(kubectl get namespaces | grep ${APP_NAMESPACE}) ]]; then
+    echo "OK - Namespace called ${APP_NAMESPACE} already exist"
+else
+    kubectl create namespace ${APP_NAMESPACE}
+fi
+
+# Using built in codedeploy environmental variables to access the downloaded bundle
+cd /opt/codedeploy-agent/deployment-root/${DEPLOYMENT_GROUP_ID}/${DEPLOYMENT_ID}/deployment-archive
+pwd && ls -la
+
+if [[ $(helm list -n ${APP_NAMESPACE} | grep ${APP_NAME}) ]]; then
+    echo "${APP_NAME} exist in namespace ${APP_NAMESPACE}. Perfoming helm upgrade"
+    helm upgrade ${APP_NAME} -n ${APP_NAMESPACE} .
+else
+    echo "${APP_NAME} does not exist in namespace ${APP_NAMESPACE}. Performing helm install"
+    helm install ${APP_NAME} -n ${APP_NAMESPACE} .
+fi
+```
+
+**Helm Chart**
+
+A Kubernetes Helm template is used to deploy the application. For more details on how this application is deployed, you can check out the template on my brothers [GitHub repository](https://github.com/HenryDinh86/my-todo-app/tree/main/k8s-helm).
+
+## Conclusion
+
+When I first told my brother to use my Kubernetes cluster, I initially did not have such automation in place. Each time a change was made by him and a new container image version was released, I had to log onto my server and run a "helm upgrade" manually.
+
+This is now fully automated with the following workflow
+
+1. A version tag is created when my brother does a release on GitHub
+2. The version tag will be added to his container image and pushed to DockerHub
+3. The version tag will be updated in the values.yaml
+4. The Helm template is zipped and pushed to my S3 bucket
+5. S3 will trigger Lambda
+6. Lambda will create a deployment via CodeDeploy
+7. CodeDeploy will run on the Kubernetes master server and run "helm upgrade / helm install"
+
+Here are some snippets from the DockerHub actions for where the magic happens.
+
+```yaml
+name: CI to Docker Hub
+
+on:
+  create:
+    tags:
+      - "[0-9]+.[0-9]+"  # Tag must be like 0.1, 1.0 etc.
+
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    steps:
+      ... <truncated>
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/todo-app:${{ github.event.ref }}
+
+      ... <truncated>
+      - name: zip k8s-helm directory
+        run: |
+          cd ./k8s-helm/
+          sed -i "s/_VERSION_TAG_FROM_CI_/${{ github.event.ref }}/g" values.yaml
+          zip -r henry_todo_app.zip .
+```

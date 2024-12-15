@@ -1,0 +1,301 @@
+---
+title: "AWS S3 with SSE-KMS - Cross Account Access using Terraform"
+description: >-
+  Sharing S3 buckets across different AWS accounts is a very common practice and with encryption being more important now than ever, especially in certain industries like finance where security mandates us to enable SSE (Server Side Encryption) on all our buckets.
+pubDate: 2022/09/09
+category: How To
+tags:
+  - "aws"
+  - "terraform"
+heroImage: "../../assets/images/S3CrossAccountAccess.png"
+---
+
+Sharing S3 buckets across different AWS accounts is a very common practice and with encryption being more important now than ever, especially in certain industries like finance where security mandates us to enable SSE (Server Side Encryption) on all our buckets.
+
+For those who have worked with S3 buckets before, you would've came across the 2 different S3 encryption types:
+
+- **SSE-S3** - When using this option, AWS will manage the encryption for us. We don't have an option to modify the key and it's policies, therefore you cannot share a bucket to another AWS account with this type of encryption.
+- **SSE-KMS** - When using this option, we create our own Customer Managed key in KMS and we use this key in S3 to encrypt/decrypt objects. By using our own key, we can manage the key policy and allow another AWS account/role to read/write objects into our bucket.
+
+Note 1: If you have an existing bucket that is encrypted using SSE-S3 and want to share it with another account, you must change it to use SSE-KMS. All existing objects must also be updated to use the new KMS key. For more information, please check out this [AWS blog post](https://aws.amazon.com/blogs/storage/changing-your-amazon-s3-encryption-from-s3-managed-encryption-sse-s3-to-aws-key-management-service-sse-kms/).
+
+Note 2: From here on, I will use be using Terraform for this demo since it is now the most common way people provision cloud resources.
+
+## Creating the S3 bucket for cross account access
+
+As stated above, SSE-KMS for S3 must be used and therefore I will be creating the KMS key along with the key policy. I will also be using KMS grant which will allow the target account to give permission to other roles that exist in that account. We cannot create a KMS policy and allow a role which doesn't exist in the target account.
+
+More information about KMS grants can be found on [AWS documentation](https://docs.aws.amazon.com/kms/latest/developerguide/grants.html).
+
+This Terraform code here will create the following resources for me and is ran on the source account.
+
+- S3 bucket using SSE-KMS
+- S3 bucket policy to share access to the target account
+- KMS key for S3
+- KMS key policy and enables KMS grant for the target account
+
+```hcl
+# all code placed in one file for demo simplicity
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.29.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-southeast-2"
+}
+
+
+###########
+# Variables
+variable "source_account_id" {
+  type    = number
+  default = 123456789123
+}
+
+variable "target_account_id" {
+  type    = number
+  default = 112233445566
+}
+
+
+#######
+# Data
+data "aws_iam_policy_document" "s3_kms" {
+  statement {
+    sid       = "source-account-full-access"
+    effect    = "Allow"
+    actions   = ["kms:*"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.source_account_id}:root"]
+    }
+  }
+
+  statement {
+    sid    = "target-account-allow-grant"
+    effect = "Allow"
+
+    # the following actions are required by Terraform to read/create/remove grants
+    actions = [
+      "kms:CreateGrant",
+      "kms:DescribeKey",
+      "kms:ListGrants",
+      "kms:RevokeGrant"
+    ]
+    resources = ["*"]
+
+    # This allows any IAM role in the target account that has permission to create the grant to create the grant.
+    # Can lock this down to a specific account in the target account so only that role is able to create grant for this key
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.target_account_id}:root"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "target_account_access_policy" {
+  statement {
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:ListMultipartUploadParts",
+      "s3:AbortMultipartUpload"
+    ]
+
+    resources = [
+      aws_s3_bucket.mybucket.arn,
+      "${aws_s3_bucket.mybucket.arn}/*",
+    ]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.target_account_id}:root"]
+    }
+  }
+}
+
+
+###########
+# Resources
+resource "aws_kms_key" "s3_key" {
+  description = "Key for S3"
+  policy      = data.aws_iam_policy_document.s3_kms.json
+}
+
+resource "aws_kms_alias" "s3_kms" {
+  name          = "alias/s3-shared-kms"
+  target_key_id = aws_kms_key.s3_key.key_id
+}
+
+resource "aws_s3_bucket" "mybucket" {
+  bucket = "lexd-shared-bucket"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "sse_kms" {
+  bucket = aws_s3_bucket.mybucket.bucket
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.s3_key.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "target_account_access" {
+  bucket = aws_s3_bucket.mybucket.id
+  policy = data.aws_iam_policy_document.target_account_access_policy.json
+}
+```
+
+## Accessing the shared bucket from the target AWS account
+
+The following Terraform code is executed against the target AWS account. This account will access the S3 bucket that is created earlier in the source account.
+
+**Important note**: It is assumed that a role already exist with the IAM permission that grants access to the shared bucket. In this demo, my IAM role is called "Sandbox-Admin".
+
+So even though my Sandbox-Admin role have full access (Action: "\*") in IAM, I cannot write to the bucket.
+
+Example:
+
+```
+# To learn more about my assume-role script, please see my previous post here:
+# https://lexdsolutions.com/2021/09/how-to-assume-role-on-aws-and-using-python/
+
+$ assume-role --c cred.yml -r roles.yml -p sandbox
+===================================
+AWS Assume Role Script by Alex Dinh
+===================================
+
+Enter MFA token code for [ arn:aws:iam::123456789123:user/alex ]: 123456
+
+Assuming role to: arn:aws:iam::112233445566:role/Sandbox-Admin
+Successfully assumed role!
+Updating /home/alex/.aws/credentials file...
+
+Your new AWS credentials will now work with awscli. e.g.
+$ aws ec2 describe-instances --profile sandbox
+
+$ aws s3 cp --profile sandbox source.tf s3://lexd-shared-bucket
+upload failed: ./source.tf to s3://lexd-shared-bucket/source.tf An error occurred (AccessDenied) when calling the PutObject operation: Access Denie
+```
+
+Run the following Terraform code on the target account to create the grant and give access to the role
+
+```hcl
+# all code placed in one file for demo simplicity
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.29.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-southeast-2"
+}
+
+
+###########
+# Variables
+variable "source_account_id" {
+  type    = number
+  default = 123456789123
+}
+
+variable "region" {
+  type    = string
+  default = "ap-southeast-2"
+}
+
+variable "kms_alias_name" {
+  type    = string
+  default = "s3-shared-kms"
+}
+
+variable "role_name" {
+  type    = string
+  description = "The role which grants access the KMS access to"
+  default = "Sandbox-Admin"
+}
+
+
+#######
+# Data
+data "aws_kms_key" "s3_kms" {
+  key_id = "arn:aws:kms:${var.region}:${var.source_account_id}:alias/${var.kms_alias_name}"
+}
+
+data "aws_iam_role" "my_role" {
+  name = var.role_name
+}
+
+###########
+# Resources
+resource "aws_kms_grant" "my_grant" {
+  name              = "grant-s3-kms-key"
+  key_id            = data.aws_kms_key.s3_kms.arn
+  grantee_principal = data.aws_iam_role.my_role.arn
+  operations        = ["Encrypt", "Decrypt", "GenerateDataKey"]
+}
+
+```
+
+Now that we have the grant created via Terraform, we can now access the bucket because we have access to the KMS key!
+
+```
+$ aws s3 cp --profile sandbox source.tf s3://lexd-shared-bucket
+upload: ./source.tf to s3://lexd-shared-bucket/source.tf
+
+$ aws s3 ls --profile sandbox s3://lexd-shared-bucket
+2022-09-09 21:24:19       2438 source.tf
+
+$ aws s3 rm --profile sandbox s3://lexd-shared-bucket/source.tf
+delete: s3://lexd-shared-bucket/source.tf
+```
+
+## Show the grants created
+
+The grant is created on the target account and to see what grants are created for a KMS key, we can reveal this from our source account.
+
+```
+$ export KMS_ARN=$(aws kms list-aliases --query 'Aliases[?AliasName == `alias/s3-shared-kms`].TargetKeyId' --output text)
+
+$ aws kms list-grants --key-id $KMS_ARN
+{
+    "Grants": [
+        {
+            "KeyId": "arn:aws:kms:ap-southeast-2:123456789123:key/fb401a69-ad5d-456e-a723-xxxxx",
+            "GrantId": "9337c266eae....",
+            "Name": "grant-s3-kms-key",
+            "CreationDate": "2022-09-09T21:23:45+10:00",
+            "GranteePrincipal": "arn:aws:iam::112233445566:role/Sandbox-Admin",
+            "IssuingAccount": "arn:aws:iam::112233445566:root",
+            "Operations": [
+                "Decrypt",
+                "Encrypt",
+                "GenerateDataKey"
+            ]
+        }
+    ]
+}
+```
+
+## Conclusion
+
+Using KMS grants can give lots of flexibility for cross account access. It is not only used for granting access to a KMS key used by S3, the same can be used for granting access to a KMS key which is used for encrypting EBS volumes and other resources.
+
+I hope you find this information useful and please leave a comment below if you have any questions.

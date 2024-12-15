@@ -1,0 +1,185 @@
+---
+title: "Refactoring Terraform code using moved block or state mv"
+description: >-
+  Have you ever need to refactor your Terraform code?
+pubDate: 2022/07/24
+category: How To
+tags:
+  - "aws"
+  - "terraform"
+heroImage: "../../assets/images/Refactoring-Terraform-Code.png"
+---
+
+Have you ever need to refactor your Terraform code? you might want to simply rename a resource or even change the resource block to use "count" or "for\_each" when modifying your code.
+
+The problem you would face is that Terraform will think the change is a brand new and wants to delete the old resource even though the content is exactly the same.
+
+Having Terraform to tear down your old resource and create a new one is never a good idea, especially for stateful resources like a database!
+
+## **Initial code as example**
+
+_Note: For this demo, all code is placed in a single file for simplicity. It is a good practice to put locals, resources and variables into their own terraform (.tf / .tfvar) files._
+
+Here I am using security groups as a demo (zero charge on AWS for me), but this can apply to any resources that Terraform provisions. You can see that I am creating security groups as separate resource blocks, one can say this is a bad practice, so here we will refactor this code to use for\_each.
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 3.58.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-southeast-2"
+}
+
+data "aws_vpc" "selected" {
+  filter {
+    name   = "tag:Name"
+    values = ["LEXD-VPC"]
+  }
+}
+
+resource "aws_security_group" "allow_https" {
+  name        = "Allow HTTPS"
+  description = "Allow TLS inbound traffic"
+  vpc_id      = data.aws_vpc.selected.id
+
+  ingress {
+    description = "Allow TLS inbound traffic"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Allow HTTPS"
+  }
+}
+
+resource "aws_security_group" "allow_ssh" {
+  name        = "Allow SSH"
+  description = "Allow SSH inbound traffic"
+  vpc_id      = data.aws_vpc.selected.id
+
+  ingress {
+    description = "Allow SSH inbound traffic"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [data.aws_vpc.selected.cidr_block]
+  }
+
+  tags = {
+    Name = "Allow SSH"
+  }
+}
+```
+
+## Refactor code to use locals and for\_each
+
+The refactored code now looks like the following. It's a lot cleaner and for any additional rules, I only need to update the local.security\_groups list.
+
+```hcl
+locals {
+  security_groups = [
+    {
+      name = "Allow HTTPS"
+      description = "Allow TLS inbound traffic"
+      allow_port = 443
+      from_cidrs = ["0.0.0.0/0"]
+    },
+    {
+      name = "Allow SSH"
+      description = "Allow SSH inbound traffic"
+      allow_port = 22
+      from_cidrs = [data.aws_vpc.selected.cidr_block]
+    }
+  ]
+}
+
+resource "aws_security_group" "refactored_sg" {
+  # using the "name" as the key for each rule object
+  for_each = { for rule in local.security_groups : rule.name => rule }
+
+  name        = each.value.name
+  description = each.value.description
+  vpc_id      = data.aws_vpc.selected.id
+
+  ingress {
+    description = each.value.description
+    from_port   = each.value.allow_port
+    to_port     = each.value.allow_port
+    protocol    = "tcp"
+    cidr_blocks = each.value.from_cidrs
+  }
+
+  tags = {
+    Name = each.value.name
+  }
+}
+```
+
+Without telling Terraform that the state is changed, when I run "terraform plan" I will get the following output:
+
+```
+Plan: 2 to add, 0 to change, 2 to destroy
+```
+
+## Using the moved block
+
+Since the release of [Terraform v1.1](https://www.hashicorp.com/blog/terraform-1-1-improves-refactoring-and-the-cloud-cli-experience), the moved statement allows us to easily tell Terraform that we have refactored our code and tell it not to destroy our resource.
+
+To use the moved block, I need to add the following into my Terraform code:
+
+```hcl
+moved {
+  from = aws_security_group.allow_https
+  to = aws_security_group.refactored_sg["Allow HTTPS"]
+}
+
+moved {
+  from = aws_security_group.allow_ssh
+  to = aws_security_group.refactored_sg["Allow SSH"]
+}
+```
+
+What's happening here is that I am telling Terraform that the previous "from" resource has been moved to another resource. This is very powerful especially when you are developing a module for others to consume as source.
+
+Now if I run "terraform plan", it will show that nothing will happen.
+
+```
+No changes. Your infrastructure matches the configuration.
+```
+
+## Using terraform state mv
+
+Prior to Terraform v1.1, this is the way to refactor our code and to tell Terraform that a resource state have changed.
+
+```
+$ terraform state mv 'aws_security_group.allow_https' 'aws_security_group.refactored_sg["Allow HTTPS"]'
+Move "aws_security_group.allow_https" to "aws_security_group.refactored_sg[\"Allow HTTPS\"]"
+Successfully moved 1 object(s).
+
+$ terraform state mv 'aws_security_group.allow_ssh' 'aws_security_group.refactored_sg["Allow SSH"]'
+Move "aws_security_group.allow_ssh" to "aws_security_group.refactored_sg[\"Allow SSH\"]"
+Successfully moved 1 object(s).
+
+$ terraform plan
+aws_security_group.refactored_sg["Allow HTTPS"]: Refreshing state... [id=sg-0245ea3287e8cd02e]
+aws_security_group.refactored_sg["Allow SSH"]: Refreshing state... [id=sg-09489ba5e6f38d991]
+
+No changes. Your infrastructure matches the configuration.
+```
+
+When we run "terraform state mv", this will change the Terraform state file, so only run the command if you know what you are doing! this is why using the moved block is the recommended approach in my opinion. It is clear for anyone reading your code, can be used in a module and doesn't need to touch your terraform state file!
+
+## Conclusion
+
+Prior to the moved block being available, we had to use "terraform mv" to move a state. If the resource is part of your root module like my demo here then it is manageable. However if the code I have here is a module that is consumed by others as a module source, then it will be very difficult for others to manage their Terraform states. If others are not careful and they blindly run terraform apply then resources can be destroyed and caused unexpected results.
+
+I personally recommend to always using the moved block as it is clear within the code on what was changed, it doesn't modify the state file until you run "terraform apply" and has no complication when developing modules.

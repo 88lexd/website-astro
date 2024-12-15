@@ -1,0 +1,197 @@
+---
+title: "How to Query JSON by Using jq in Bash"
+description: >-
+  Learn how to query JSON using jq in Bash
+pubDate: 2022/10/07
+category: Tips and Tricks
+tags:
+  - "bash"
+  - "json"
+heroImage: "../../assets/images/jsonquery.png"
+---
+
+Updated on: 7th October 2022 - Added more examples.
+
+JSON stands for _JavaScript Object Notation_. Many web API's today returns a JSON response when you communicate with the API endpoint.
+
+For those that are not familiar with JSON, it looks something like this:
+
+```json
+[
+    {
+        "firstName": "bob",
+        "lastName": "smith",
+        "gender": "male"
+    },
+    {
+        "firstName": "jenny",
+        "lastName": "lee",
+        "gender": "female"
+    },
+    {
+        "firstName": "andy",
+        "lastName": "king",
+        "gender": "male"
+    },
+    {
+        "firstName": "stella",
+        "lastName": "le",
+        "gender": "female"
+    }
+]
+```
+
+In short, the square brackets "\[ \]" represents a list and the curly braces "{ }" represents each object in the list.
+
+Example using jq to count the number of males and females.
+
+```
+$ cat names.json | jq -r '.[].gender' | sort | uniq -c
+      2 female
+      2 male
+```
+
+## What is jq and why I use it?
+
+[jq](https://stedolan.github.io/jq/) is a popular lightweight utility for querying JSON. It is often used in Bash when you "_curl_" against a web API and it returns a JSON response in which you need to query.
+
+I use jq because I don't always want to rely on Python to handle basic queries to a web API. Especially when it is used within a CI/CD pipeline that is running on Linux (bash)
+
+Here is one other example how I use jq to query the Kubernetes cluster API to extract all the pod names.
+
+```
+$ curl -s http://127.0.0.1:8001/api/v1/pods | jq -r '.items[].metadata.name' | sort
+calico-kube-controllers-f7868dd95-xx
+calico-node-xx
+coredns-7f9c69c78c-xx
+dashboard-metrics-scraper-78d7698477-xx
+hostpath-provisioner-5c65fbdb4f-xx
+kubernetes-dashboard-85fd7f45cb-xx
+lets-encrypt-cron-27282960-xx
+lets-encrypt-cron-27282960-xx
+lets-encrypt-cron-27293040-xx
+lets-encrypt-cron-27293040-xx
+lets-encrypt-cron-27303120-xx
+lets-encrypt-cron-27303120-xx
+metrics-server-8bbfb4bdb-xx
+mysql-wordpress-5d69547997-xx
+mysql-wordpress-6875c877f6-xx
+nfs-subdir-external-provisioner-565c9fbd4c-xx
+nginx-ingress-microk8s-controller-xx
+wordpress-65fb8bb76d-xx
+wordpress-7b7bbfc5dc-xx
+wordpress-7b7bbfc5dc-xx
+```
+
+## How to Query using jq
+
+In this section, I will demonstrate jq by using the following requirements. I will be querying the _names.json_ file as shown in the introduction.
+
+- Show the first object in the list
+- Show first names and genders only
+- Show the object where firstName is andy
+- Show objects where lastName starts with "le"
+- Replace a value in JSON
+- Compressing result into a single line
+
+**Show the first object in the list**
+
+A list always begins with index 0, so the following will get the first object in the list.
+
+```
+$ cat names.json | jq '.[0]'
+{
+  "firstName": "bob",
+  "lastName": "smith",
+  "gender": "male"
+}
+```
+
+**Show first names and genders only**
+
+Use the jq pipe to filter only the fields we want to return.
+
+```
+# Note: When we don't specify the index, it will use all the objects in the list.
+$ cat names.json | jq  '.[] | {firstName,gender}'
+{
+  "firstName": "bob",
+  "gender": "male"
+}
+{
+  "firstName": "jenny",
+  "gender": "female"
+}
+{
+  "firstName": "andy",
+  "gender": "male"
+}
+{
+  "firstName": "stella",
+  "gender": "female"
+}
+```
+
+**Show the object where firstName is andy**
+
+Use the select function to specify the condition to check
+
+```
+# Note: When we don't specify the index, it will use all the objects in the list.
+$ cat names.json | jq  '.[] | select(.firstName == "andy")'
+{
+  "firstName": "andy",
+  "lastName": "king",
+  "gender": "male"
+}
+```
+
+**Show objects where lastName starts with "le"**
+
+```
+# Note: When we don't specify the index, it will use all the objects in the list.
+$ cat names.json | jq  '.[] | select(.lastName | startswith("le"))'
+{
+  "firstName": "jenny",
+  "lastName": "lee",
+  "gender": "female"
+}
+{
+  "firstName": "stella",
+  "lastName": "le",
+  "gender": "female"
+}
+```
+
+**Replace value in JSON**
+
+Changing the lastName from "king" to "wong"
+
+```
+# Note: When we don't specify the index, it will use all the objects in the list.
+$ cat names.json | jq '.[] | select(.firstName == "andy") | .lastName = "wong"'
+{
+  "firstName": "andy",
+  "lastName": "wong",
+  "gender": "male"
+}
+```
+
+**Compressing result into a single line**
+
+Putting the result into a single line can be very useful, especially when passing the result into another API call via cURL for example.
+
+```
+# Note: When we don't specify the index, it will use all the objects in the list.
+$ RESULT=$(cat names.json | jq '.[] | select(.firstName == "andy")' -c)
+$ echo $RESULT
+{"firstName":"andy","lastName":"king","gender":"male"}
+```
+
+## Conclusion
+
+jq is very powerful especially when it is used in a CI/CD pipeline.
+
+If you would like to see more examples or questions on jq, please leave a comment below.
+
+Otherwise you can take a look at the [jq documentation](https://stedolan.github.io/jq/manual/) here.
