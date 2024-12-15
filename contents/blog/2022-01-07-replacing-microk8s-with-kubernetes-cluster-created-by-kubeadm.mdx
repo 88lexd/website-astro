@@ -1,0 +1,203 @@
+---
+title: "Replacing MicroK8s with Kubernetes Cluster Created by kubeadm"
+description: >-
+  Replacing MicroK8s with K8s created by kubeadm on EC2 instances...
+pubDate: 2022/01/07
+category: Building this Blog
+tags:
+  - "ansible"
+  - "aws"
+  - "kubernetes"
+  - "terraform"
+heroImage: "../../assets/images/K8s_kubeadm.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+When I first created this blog, I went with the most cost effective solution by deploying only a single EC2 instance running MicroK8s. To learn more about the original setup you can read my [previous post](https://lexdsolutions.com/2021/09/setting-up-microk8s-and-a-nfs-server-using-ansible/).
+
+## New 2x Node Cluster Design
+
+In this new design, I now have the following:
+
+- 1x Jumpbox to manage the environment.
+- Kubernetes running on a 2x node cluster that is deployed using kubeadm.
+- EFS as the backend persistent storage for pods.
+
+<ImageZoom src="/images/kubeadm-Cluster-Design.png" client:load />
+
+**Important Design Decisions**
+
+- Using a single Availability Zone (AZ) - _This blog doesn't require high availability, therefore I am saving cost on EFS by using a single AZ and also I do not need to pay for data transfer cost between AZ's_
+- Master node to sit in the public subnet - _The controlplane/master server requires internet access and I didn't want to pay for a NAT gateway just for a single instance._ The master server is secured enough thanks to the security group ingress rules.
+- No ELB (Elastic Load Balancer) - _Traffic to my blog is still manageable through a single node. Once traffic picks up then I will place an ELB infront of_ multiple worker nodes. For now the worker node uses a Nginx Ingress controller to serve it's web traffic.
+- No RDS (Relational Database Services) - _Until I start experiencing some performance impact, the 1x MySQL pod will continue to use NFS(EFS) as the backend Persistent_ Volume.
+- Jumpbox - _The jumpbox is manually provisioned so I can make sure it doesn't depend on IaC in case something goes wrong during deployment._
+
+## Creating the Infrastructure Resources through Terraform
+
+As I already have my existing Terraform code to create the VPC etc. I only needed to create a sub-module to provision these new additional resources. The source code for Terraform can be found here on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/1-infra-configuration/2-general-setup). If you want to know more about my existing Terraform code, see my [previous post](https://lexdsolutions.com/2021/09/using-cloudformation-and-terraform-on-my-brand-new-aws-account/).
+
+The new Terraform module will provision and configure the following additional resources on AWS:
+
+**EC2 Instances** ([ec2.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/ec2.tf))
+
+Uses the "ec2\_instance" module in a "for\_each" loop to provision 2x EC2 instances based on what is configured in the locals value.
+
+Example:
+
+```hcl
+locals {
+  ec2_instances = {
+      k8s_master = {
+        name                 = var.ec2_k8smaster_instance_name
+        ami                  = data.aws_ami.ubuntu.id
+        instance_type        = var.ec2_k8smaster_instance_type
+        security_group_ids   = [aws_security_group.k8s_master.id]
+        subnet_id            = var.vpc_public_subnets[0]
+        volume_tags          = var.ec2_k8smaster_instance_tags
+        iam_instance_profile = aws_iam_instance_profile.ec2_iam_instance_profile.name
+        tags                 = var.ec2_k8smaster_instance_tags
+      }
+
+      k8s_worker1 = {
+        name                 = var.ec2_k8sworker_instance_name
+        ami                  = data.aws_ami.ubuntu.id
+        instance_type        = var.ec2_k8sworker_instance_type
+        security_group_ids   = [aws_security_group.k8s_workernodes.id]
+        subnet_id            = var.vpc_public_subnets[0]
+        volume_tags          = var.ec2_k8sworker_instance_tags
+        iam_instance_profile = aws_iam_instance_profile.ec2_iam_instance_profile.name
+        tags                 = var.ec2_k8sworker_instance_tags
+      }
+  }
+}
+
+module "ec2_instance" {
+  for_each = local.ec2_instances
+
+  source  = "terraform-aws-modules/ec2-instance/aws"
+  version = "3.1.0"
+
+  name = each.value.name
+
+  ami                     = each.value.ami
+  instance_type           = each.value.instance_type
+  key_name                = var.ec2_keypair_name
+  vpc_security_group_ids  = each.value.security_group_ids
+  subnet_id               = each.value.subnet_id
+  enable_volume_tags      = true
+  volume_tags             = each.value.volume_tags
+  iam_instance_profile    = each.value.iam_instance_profile
+  disable_api_termination = false
+  tags = each.value.tags
+}
+```
+
+**Security Groups (**[security-groups-tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/security-groups.tf))
+
+There is a circular dependency between the K8s Master and the K8s Worker security groups. If I am to create the rules within the "aws\_security\_group" module, Terraform will throw the "cycle" error.
+
+To workaround this, the security groups must be created first and then have the rules defined later by using the "aws\_security\_group\_rule" resource.
+
+**EC2 IAM Role** ([ec2-iam-role.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/ec2-iam-role.tf))
+
+This creates the IAM role which allows the EC2 instance to perform certain actions on AWS. I’ve created this so that the instance is able to use the [CloudWatch agent](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html) and push custom metrics onto CloudWatch (in particularly, the "disk\_free" metric).
+
+**EFS (Elastic File System)** ([efs.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/efs.tf))
+
+Creates a single AZ EFS in ap-southeast-2 to save cost and also creates the EFS target so the worker node can mount this file system via NFS.
+
+**Terraform Variables** ([variables.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/variables.tf))
+
+Is always a good practice to use variables and everything within this module references the variables as defined here. This works by having the parent module pass in additional variables such as the AWS region, VPC id and subnets etc.
+
+_Example_ (variable.tf):
+
+```hcl
+##############################################
+# Additional vars that's pass into this module
+variable "aws_region" {
+  type = string
+}
+
+variable "vpc_id" {
+  type = string
+}
+
+variable "vpc_azs" {
+  type = list(string)
+}
+
+variable "vpc_private_subnets" {
+  type = list(string)
+}
+
+variable "vpc_public_subnets" {
+  type = list(string)
+}
+```
+
+When the parent module ([kubeadm-cluster.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm-cluster.tf)) is triggered, it will pass in these additional values.
+
+Example:
+
+```hcl
+module "kubeadm_cluster" {
+  source = "./kubeadm_cluster"
+  aws_region = var.aws_region
+  vpc_id = module.vpc.vpc_id
+  vpc_azs = var.vpc_azs
+  vpc_private_subnets = module.vpc.private_subnets
+  vpc_public_subnets = module.vpc.public_subnets
+}
+```
+
+## Configuring the OS using Ansible
+
+Same as my previous setup. Everything within the OS is configured through Ansible. The source code can be found on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/2-os-configuration).
+
+The Ansible playbook will configure the following:
+
+- Apply base OS configuration with my personal settings on all nodes ([base-config.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/base-config.yml))
+- Install and Setup CloudWatch agent on all nodes ([setup-aws-cw-agent.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-aws-cw-agent.yml))
+- Install and configure containerd as container runtime on all nodes ([setup-containerd.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-containerd.yml))
+- Prepare nodes for Kubernetes install (e.g. disabling swap, configuring br\_netfilter etc.) ([setup-k8s-nodes.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-k8s-nodes.yml))
+- Install Kubernetes packages on all nodes (e.g. kubeadm, kubectl, kubelet) ([setup-k8s-nodes.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-k8s-nodes.yml))
+- Create Kubernetes cluster by using kubeadm ([k8s-master.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/k8s-master.yml))
+- Join worker node to cluster ([k8s-join-nodes-to-cluster.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/k8s-join-nodes-to-cluster.yml))
+- Apply cluster config such as deploying existing secrets and creating namespaces ([k8s-cluster-configs.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/k8s-cluster-configs.yml))
+- Install and setup Nginx Ingress Controller ([setup-nginx-ingress-controller.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-nginx-ingress-controller.yml))
+- Install and setup NFS-Subdir External Provisioner ([setup-nfs-subdir-provisioner.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-nfs-subdir-provisioner.yml))
+
+**Ansible Inventory** ([inventory\_aws.ini](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/inventory_aws.ini))
+
+This inventory file is passed into the ansible-playbook command. This contains the additional variables for Ansible so it knows which server is the master/worker and where the EFS target endpoint is during configuration.
+
+## Migration Strategy
+
+As everything I had was provisioned and configured through IaC (Infrastructure as Code), there isn't much I really needed to do in reconfiguring the new cluster. I simply ran the updated Ansible playbook and that is about it.
+
+In a high level this is what I needed to do:
+
+1. Run Terraform to provision the new infrastructure resources on AWS.
+2. Run the Ansible playbook to configure the OS and setup the new Kubernetes cluster.
+3. Deploy my WordPress Helm chart but made sure deployment is set to 0 for both MySQL and WordPress.
+4. Shutdown the existing MicroK8s cluster.
+5. Copy the old NFS data to EFS (this is where the previous persistent volumes for the pods are located).
+6. Set the Helm deployment count to 1 for both MySQL and WordPress on the new cluster.
+7. Attach the EIP from the old EC2 instance over to the new worker node.
+
+After about a week to confirm the new setup is working fine then the old resource will be deleted through Terraform.
+
+## Conclusion
+
+When redesigning this infrastructure I had to make many non-standard best practices with AWS. This is the only way for me to run this blog with minimal spending.
+
+It is only once this blog picks up more traffic then I will look at redoing this again. Changes which I have in mind is:
+
+1. Create an ELB in the public subnet.
+2. Move all instances into the private subnet and setup a NAT gateway.
+3. Use RDS for the backend MySQL instance.
+4. If HA is required then multiple worker nodes will be placed in different AZ's and possibly setting up the Kubernetes controlplane to also run in a cluster.
+
+If you have questions or feedback please feel free to reach out to me or leave a comment below.
