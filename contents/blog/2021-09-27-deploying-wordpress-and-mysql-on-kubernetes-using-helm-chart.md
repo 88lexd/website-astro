@@ -2,7 +2,7 @@
 title: "Deploying WordPress and MySQL on Kubernetes using Helm Chart"
 description: >-
   This is part 2 of 3 in my "how I built this blog" series.
-pubDate: "Sep 27 2021"
+pubDate: 2021/09/27
 heroImage: "../../assets/images/K8s-Helm-WP-MYSQL.png"
 category: Building this Blog
 tags:
