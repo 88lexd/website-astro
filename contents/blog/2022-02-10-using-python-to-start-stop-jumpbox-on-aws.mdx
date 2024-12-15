@@ -1,0 +1,135 @@
+---
+title: "Using Python to Start/Stop Jumpbox on AWS"
+description: >-
+  Script to auto start/stop jumpbox on AWS to save cost...
+pubDate: 2022/02/10
+category: Automation
+tags:
+  - "aws"
+  - "jumpbox"
+  - "python"
+heroImage: "../../assets/images/Start-Stop-Jumpbox-Script.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+Previously I wrote a blog about how I've replaced my original MicroK8s cluster with a new 2x node cluster that is built using kubeadm. In this new setup, I have a dedicated jumpbox to manage the cluster. You can read more about this on my [previous blog post here.](https://lexdsolutions.com/2022/01/replacing-microk8s-with-kubernetes-cluster-created-by-kubeadm/)
+
+Here is a quick diagram of my current AWS setup for this blog.
+
+<ImageZoom src="/images/kubeadm-Cluster-Design.png" client:load />
+
+## Always-On is a waste of money
+
+As I don't always need to manage the cluster 24/7, it is a waste of money in keeping the jumpbox instance running.
+
+This leaves me with 2 options for each time I need to use the jumpbox.
+
+1. Log onto the AWS console > start on the instance > update the security group with my dynamic public IP.
+2. Use a script to automate this process by calling a single command.
+
+Using option 1 is very time consuming and considering that I still need to go back to my terminal to run SSH anyway, I went with the second option to automate this process.
+
+**Note**: Although it is automated, I still need to assume-role into my AWS account using MFA. This is okay, since logging into the AWS console still requires me to use MFA anyway.
+
+To learn more about what assume-role is, check out my blog called "[AWS – How to Assume Role using Python](https://lexdsolutions.com/2021/09/how-to-assume-role-on-aws-and-using-python/)"
+
+## Starting the jumpbox
+
+To start the jumpbox, all I need to do is pass in _\--start_ to my script and off it goes.
+
+Example:
+
+```raw
+$ aws-jumpbox --file config.yml --start
+===============================
+AWS Jumpbox Script by Alex Dinh
+===============================
+Found the instance using id [i-0a67xxx]
+
+-----------------
+Tags on Instance:
+-----------------
+Name: Jumpbox
+
+------------------------
+Instance State: STOPPED
+------------------------
+
+Start the instance? (yes/no): yes
+Starting the instance...
+Instance State: pending
+Instance State: running
+Instance started successfully! (public IP: 52.63.xx.yy)
+
+Update security group? (yes/no): yes
+Updating security group...
+Getting current outbound public IP...
+  Current External IP: 49.195.xx.yy
+Updating security group ingress rules...
+Displaying ingress rules for - sg-0db4xxx
+  Protocol: tcp | From Port: 22 | To Port: 22 | Source: [{'CidrIp': '49.195.xx.yy/32', 'Description': 'MyDynamicIP'}]
+Security group updated successfully!
+
+Update .ssh/config file? (yes/no): yes
+Updating .ssh/config file
+Config updated!
+
+Script completed!
+```
+
+As seen above, it will start the instance and once it is started, it can also do the following:
+
+**Update security group:** This will update the AWS security group to allow SSH from my current public IP address.
+
+**Update .ssh/config:** This will update my local SSH config so I can use VS Code's remote development via SSH keys. Without this, I must update VS Code to use the new public IP of the jumpbox each time (I didn't want to pay for a EIP as there is a charge involved when it is not attached to a running instance).
+
+## Stopping the jumpbox
+
+To stop the jumpbox, all I need to do is pass in _\--stop_ to my script and off it goes.
+
+Example:
+
+```raw
+$ aws-jumpbox --file config.yml --stop
+===============================
+AWS Jumpbox Script by Alex Dinh
+===============================
+Found the instance using id [i-0a67xxx]
+
+-----------------
+Tags on Instance:
+-----------------
+Name: Jumpbox
+
+------------------------
+Instance State: RUNNING
+------------------------
+
+Stop the instance? (yes/no): yes
+Stopping the instance...
+Instance State: stopping
+Instance State: stopping
+Instance State: stopped
+Instance stopped successfully!
+
+Clean security group rule(s)? (yes/no): yes
+Cleaning security group rules with description [MyDynamicIP]...
+  Removing -- Protocol: tcp | From Port: 22 | To Port: 22 | Source: 49.195.xx.yy/32
+Security group cleaning completed!
+
+Script completed!
+```
+
+Since it doesn't hurt to clean up the security group, I have the option to remove the rule which I've added previously when I started the instance.
+
+## The script
+
+If you are interested in the script itself, you can find it on my [GitHub repository](https://github.com/88lexd/lexd-solutions/tree/main/misc-scripts/python-aws-jumpbox).
+
+## What's next
+
+So this script is great, I can save money by only starting up the instance whenever I need to use it. However there may be a time when I forget to turn off the instance!
+
+For this reason, I have also implemented a Lambda function that runs every hour to make sure my jumpbox uptime does not exceed my defined threshold. If it does then SNS will send me an email notification.
+
+My next blog post will be talking about this Lambda function. If you would like to go ahead you can see the source code that is on my [GitHub repository here](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lambda-jumpbox-uptime).
