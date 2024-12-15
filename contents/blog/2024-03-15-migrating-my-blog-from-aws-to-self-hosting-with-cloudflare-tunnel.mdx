@@ -1,0 +1,133 @@
+---
+title: "Migrating My Blog from AWS to Self-Hosting with Cloudflare Tunnel"
+description: >-
+  How I migrated from AWS back home thanks to Cloudflre Tunnel
+pubDate: 2024/03/15
+category: Building this Blog
+tags:
+  - "ansible"
+  - "kubernetes"
+  - "terraform"
+heroImage: "../../assets/images/MigratingHome.png"
+---
+
+When I first created my blog, I wanted to self-host the infrastructure. However because of my home connection (5G broadband) is sitting behind a CGNAT, this wasn't possible for me.
+
+With CGNAT I do not have a dedicated public IP address to work with, so I ended up hosting my blog on AWS instead.
+
+## Cloudflare Tunnel
+
+This problem all went away when I've discovered [Cloudflare Tunnel](https://www.cloudflare.com/en-au/products/tunnel/) and its free! All is required from me is to run a daemon inside my network and point it to the web service which I want it to be accessible over the internet.
+
+Besides being able to host my site myself, Cloudflare provides many additional benefits as well such as security, caching etc.
+
+What Cloudflare offer for free is amazing! I've been using Cloudflare to front my blog about 8 months now. Check out my [previous blog](https://lexdsolutions.com/2023/08/how-i-deployed-cloudflare-using-terraform/) post here to learn more.
+
+## Deploying Cloudflare Tunnel using Terraform
+
+As I was already using Terraform to provision Cloudflare to front my blog, all I had to do is create another resource in Terraform to setup the tunnel. For example:
+
+```hcl
+resource "random_string" "tunnel_secret" {
+  length  = 32
+  special = true
+}
+
+resource "cloudflare_tunnel" "lexd_solutions" {
+  account_id = var.account_id
+  name       = "lexd-solutions"
+  secret     = base64encode(random_string.tunnel_secret.result)
+}
+
+resource "cloudflare_tunnel_config" "lexd_solutions" {
+  account_id = var.account_id
+  tunnel_id  = cloudflare_tunnel.lexd_solutions.id
+
+  config {
+    ingress_rule {
+      hostname = var.hostname_fqdn
+      path     = "/"
+      service  = "http://192.168.0.23"
+    }
+
+    ingress_rule {
+      service = "http_status:404"
+    }
+  }
+}
+
+resource "cloudflare_record" "lexd_solutions" {
+  zone_id = var.zone_id
+  name    = var.hostname_dns_record
+  value   = "${cloudflare_tunnel.lexd_solutions.id}.cfargotunnel.com"
+  type    = "CNAME"
+  proxied = true
+}
+```
+
+_To see the full source code, you can find it at my [GitHub repo](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/1-infra-configuration/3-cloudflare)._
+
+Once the tunnel is setup, I just had to log into Cloudflare web console, look for the tunnel to get the token and run the _cloudflared_ service like the following:
+
+```
+$ docker run -d --restart unless-stopped cloudflare/cloudflared:latest tunnel --no-autoupdate run --token abc123
+```
+
+## Recreating the Kubernetes Infrastructure
+
+The best thing about using Infrastructure as Code (IaC), I was able to quickly spin up some VMs and setup the Kubernetes cluster in just a few clicks.
+
+This however had some caveats. As I haven't need to run my Ansible playbook for a few years, a lot has changed and the previous Kubernetes v1.23 is no longer supported. On top of that, the previous Kubernetes repository URL got deprecated and was changed (see [announcement](https://kubernetes.io/blog/2023/08/15/pkgs-k8s-io-introduction/)), so most of the cluster configuration failed for me on first run.
+
+I've spend a few hours over 2 nights to fix the Ansible playbook and I can now fully deploy Kubernetes v1.29. You can see the updated playbook in my [GitHub repo](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/2-os-configuration).
+
+## Migrating WordPress and MySQL
+
+Both the Wordpress service and the MySQL DB is running on Kubernetes on AWS. To make things easy for myself, I was using a [local-path provisioner](https://github.com/rancher/local-path-provisioner).
+
+To migrate the service all I had to do was:
+
+1. Standup the Kubernetes Infrastructure on my local network.
+
+3. Deploy [my Helm Chart](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/3-app-configuration/wordpress-helm) containing Wordpress and MySQL service locally (scaled down to 0).
+
+5. Scale down the deployments on the AWS cluster.
+
+7. Tarball the local path directories used by Wordpress and MySQL on AWS.
+
+9. Upload the tarball to S3.
+
+11. Download the tarball from S3.
+
+13. Extract the tarball at the same location on the local Kubernetes cluster
+    - Also ensure owner and permissions are retained.
+
+15. Created a dummy file locally to make sure the website serving over the internet is indeed coming from my local cluster. For example:
+    ```shell
+    echo "HelloWorld" > /opt/local-path-provisioner/pvc-xx_wordpress-local-pvc/wp-content/uploads/test.txt
+    ```
+
+17. Scale up deployments on the local Kubernetes cluster.
+
+19. Start Cloudflare Tunnel daemon.
+
+21. Access my blog URL and try fetch the "test.txt".
+    - This worked fine!
+
+23. Shutdown AWS instances to save cost.
+
+25. Done
+
+## What's Next?
+
+Since migrating my blog away from AWS, I did lose out on:
+
+1. Reliable Backups
+
+3. Centralised logging to CloudWatch Logs.
+
+5. Resource monitoring, alerting and dashboards (CloudWatch)
+
+**Backups** - I am performing VM backups to an external storage device. However the Recovery Time Objective (RTO) will be much longer compared to running on AWS if I ever experience any hardware issues.
+
+**Logging, monitoring and dashboards** - I plan on setting up Prometheus and Grafana in my cluster to provide similar level of logging and dashboards for my cluster. Once this is completed, I will write another post on how this is done.
