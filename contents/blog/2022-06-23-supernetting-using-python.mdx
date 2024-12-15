@@ -1,0 +1,102 @@
+---
+title: "Supernetting using Python"
+description: >-
+  In AWS there is a limit on the amount of rules we can have in security groups. The current limit is 60 inbound and 60 outbound rules per security group. We can also attach up to 15 security groups per ENI (Elastic Network Interface). So 60\*15 will give us up to 900 inbound rules but we cannot exceed over 1000 rules for both inbound and outbound rules combined.
+pubDate: 2022/06/23
+category: Automation
+tags:
+  - "aws"
+  - "networking"
+  - "python"
+heroImage: "../../assets/images/Python-Supernetting.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+In AWS there is a limit on the amount of rules we can have in security groups. The current limit is 60 inbound and 60 outbound rules per security group. We can also attach up to 15 security groups per ENI (Elastic Network Interface). So 60\*15 will give us up to 900 inbound rules but we cannot exceed over 1000 rules for both inbound and outbound rules combined.
+
+For more information, see the [AWS documentation](https://docs.aws.amazon.com/vpc/latest/userguide/amazon-vpc-limits.html#vpc-limits-security-groups).
+
+So when we need to add rules for a large number of different subnets to access a large number of ports, on AWS this can become a challenge.
+
+**Using AWS managed prefix lists does not work**
+
+AWS allows us to create a group of subnets and then link that to security groups so we can manage them easier, however the limits still count towards the security group rules limit.
+
+<ImageZoom src="/images/supernet-image-2.png" client:load />
+_Ref: https://docs.aws.amazon.com/vpc/latest/userguide/managed-prefix-lists.html_
+
+## Supernetting/Route Summarization to the rescue
+
+In subnetting, a single large network is split into smaller subnetworks. Supernetting/route summarization is when multiple networks are combined into a larger network.
+
+Example for the following subnets:
+
+```
+192.168.0.0/24
+192.168.1.0/24
+192.168.2.0/24
+192.168.3.0/24
+```
+
+This can be supernetted/summarized to _192.168.0.0/22_
+
+**Note:** This only works well when you have contiguous subnets.
+
+## Automation for the win
+
+To manually summarize subnets, it can be very tedious and is prone to human errors.
+
+I have developed a Python script that can help do this by simply passing in a text file containing the subnets.
+
+Example of the _subnets.txt_ file (subnets do not need to be in order, however the subnets should be contiguous such as 10.156.216.0/21 then follow by 10.156.212.0/22 or 192.168.1.0/24 then follow by 192.168.2.0/24).
+
+```
+10.156.216.0/21
+10.156.212.0/22
+10.60.0.0/16
+10.61.0.0/16
+10.50.1.0/24
+10.70.2.0/24
+192.168.0.0/24
+192.168.1.0/24
+192.168.2.0/24
+192.168.3.0/24
+```
+
+Example code execution
+
+```
+$ python3 supernet.py --file subnets.txt
+================================
+Supernetting Script by Alex Dinh
+================================
+Reading from - /home/alex/code/git/lexd-solutions/misc-scripts/python-supernetting/subnets.txt
+Begin supernetting...
+
+10.50.1.0/24 - (first host: 10.50.1.1 | last host: 10.50.1.254) -- cannot be supernetted
+10.60.0.0/16 - (first host: 10.60.0.1 | last host: 10.60.255.254) -- is supernetted
+10.61.0.0/16 - (first host: 10.61.0.1 | last host: 10.61.255.254) -- is supernetted
+10.70.2.0/24 - (first host: 10.70.2.1 | last host: 10.70.2.254) -- cannot be supernetted
+10.156.212.0/22 - (first host: 10.156.212.1 | last host: 10.156.215.254) -- cannot be supernetted
+10.156.216.0/21 - (first host: 10.156.216.1 | last host: 10.156.223.254) -- cannot be supernetted
+192.168.0.0/24 - (first host: 192.168.0.1 | last host: 192.168.0.254) -- is supernetted
+192.168.1.0/24 - (first host: 192.168.1.1 | last host: 192.168.1.254) -- is supernetted
+192.168.2.0/24 - (first host: 192.168.2.1 | last host: 192.168.2.254) -- is supernetted
+192.168.3.0/24 - (first host: 192.168.3.1 | last host: 192.168.3.254) -- is supernetted
+
+========================
+New Supernetted Subnets:
+========================
+10.50.1.0/24 - (first host: 10.50.1.1 | last host: 10.50.1.254)
+10.60.0.0/15 - (first host: 10.60.0.1 | last host: 10.61.255.254)
+10.70.2.0/24 - (first host: 10.70.2.1 | last host: 10.70.2.254)
+10.156.212.0/22 - (first host: 10.156.212.1 | last host: 10.156.215.254)
+10.156.216.0/21 - (first host: 10.156.216.1 | last host: 10.156.223.254)
+192.168.0.0/22 - (first host: 192.168.0.1 | last host: 192.168.3.254)
+```
+
+## Source code
+
+You can find this script in my GitHub repository here:
+
+[https://github.com/88lexd/lexd-solutions/tree/main/misc-scripts/python-supernetting](https://github.com/88lexd/lexd-solutions/tree/main/misc-scripts/python-supernetting)

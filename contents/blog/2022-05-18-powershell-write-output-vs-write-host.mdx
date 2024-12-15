@@ -1,0 +1,114 @@
+---
+title: "PowerShell Write-Host vs Write-Output"
+description: >-
+  The difference between Write-Host and Write-Output in PowerShell...
+pubDate: 2022/05/18
+category: Tips and Tricks
+tags:
+  - "powershell"
+heroImage: "../../assets/images/Write-Host-vs-Write-Output.png"
+---
+
+## Microsoft's Definition
+
+Reference: [https://docs.microsoft.com/en-us/powershell](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/write-output?view=powershell-7.2)[/](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/write-output?view=powershell-7.2)[module/microsoft.powershell.utility/write-output?view=powershell-7.2](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/write-output?view=powershell-7.2)
+
+**Write-Host**
+
+The _Write-Host_ cmdlet's primary purpose is to produce for-(host)-display-only output, such as printing colored text like when prompting the user for input in conjunction with Read-Host. Write-Host uses the ToString() method to write the output
+
+**Write-Output**
+
+_Write-Output_ sends objects to the primary pipeline, also known as the "output stream" or the "success pipeline."
+
+If Write-Output is the last command in the pipeline, the objects are displayed in the console
+
+## How I explain it
+
+I would use _Write-Host_ for any standard output (STDOUT) and will use _Write-Output_ if I want the send the output to the next command.
+
+## Bad idea to use Write-Output in a function!
+
+When using Write-Output by itself as the last command will output the object to the console (as explained above), this gives the impression that it works similar to Write-Host. However this will give you a very bad output when used within a function!
+
+Using the following example script:
+
+```powershell
+function MyFunction {
+    Write-Output "First print"
+    Write-Output "Second print"
+    return "my return value"
+}
+
+$MyVar = MyFunction
+
+Write-Host "MyVar contains: $($MyVar)"
+
+Write-Host "1st item contains: $($MyVar[0])"
+Write-Host "2nd item contains: $($MyVar[1])"
+Write-Host "3nd item contains: $($MyVar[2])"
+```
+
+The script above will print out the following output:
+
+```raw
+MyVar contains: First print Second print my return value
+1st item contains: First print
+2nd item contains: Second print
+3nd item contains: my return value
+```
+
+In most programming languages, only the "return" statement (line 4) should return what's defined in the function. Therefore when using Write-Output here will give undesired results.
+
+## Use Write-Host for any standard output (stdout)!
+
+Since I only want the function to return "my return value" as a string and the other 2 prints should only be a STDOUT, I should be using "Write-Host" instead.
+
+Example:
+
+```powershell
+function MyFunction {
+    Write-Host "First print"
+    Write-Host "Second print"
+    return "my return value"
+}
+
+$MyVar = MyFunction
+
+Write-host "This is $($MyVar)"
+```
+
+Script output:
+
+```raw
+First print
+Second print
+This is my return value
+```
+
+## When to actually use Write-Output?
+
+Write-Output do have its purpose. It is especially very useful when you want to pass an output to the next pipeline. Use the following for example where I want to combine some strings and save it to a file.
+
+```powershell
+$FirstName = "Alex"
+$Lastname = "Dinh"
+
+Write-Output "Hello there $($FirstName) $($Lastname)" | Out-File -FilePath .\sample.txt
+```
+
+Example of the "sample.txt" content:
+
+```raw
+PS> cat .\sample.txt
+Hello there Alex Dinh
+```
+
+PowerShell is super friendly and the following would also work, however it is just not as nice to read and easily understood.
+
+```powershell
+$FirstName = "Alex"
+$Lastname = "Dinh"
+
+"Hello there $($FirstName) $($Lastname)" | Out-File -FilePath .\sample.txt
+```
