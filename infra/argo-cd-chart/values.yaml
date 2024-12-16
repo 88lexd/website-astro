@@ -1,0 +1,12 @@
+argo-cd:
+  namespaceOverride: argo-cd
+  dex:
+    enabled: false
+  notifications:
+    enabled: false
+  applicationSet:
+    replicas: 1
+  server:
+    extraArgs:
+      # Running locally anyway, no need for TLS
+      - --insecure
