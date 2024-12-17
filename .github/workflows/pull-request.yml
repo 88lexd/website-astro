@@ -1,9 +1,9 @@
 name: PR Workflow
 
-on:
-  pull_request:
-    branches:
-      - main
+# on:
+#   pull_request:
+#     branches:
+#       - main
 
 jobs:
   check-pr-title:
