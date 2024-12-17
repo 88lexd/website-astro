@@ -37,6 +37,9 @@ jobs:
 
     - name: Create and push git tag
       run: |
+        git config user.email "gh-semver@lexdsolutions.com"
+        git config user.name "GitHub Semantic Versioning"
+
         git tag -a ${{ steps.sem-ver.outputs.version_tag }}
         git push origin ${{ steps.sem-ver.outputs.version_tag }}
 
