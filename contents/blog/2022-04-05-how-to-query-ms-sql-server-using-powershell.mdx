@@ -1,0 +1,138 @@
+---
+title: "How to Query MS SQL Server using PowerShell"
+description: >-
+  PowerShell query MS SQL Server and return result as object for the script...
+pubDate: 2022/04/05
+category: Tips and Tricks
+tags:
+  - "powershell"
+heroImage: "../../assets/images/QuerySQLUsingPowerShell.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+Most of my previous blog posts, I often use Linux as the underlying OS, however when it comes to automation, we should always use the right tool for the job.
+
+## Challenge
+
+There are times where I need to query a Microsoft SQL Server and as most SQL Server authentication is set to use "Windows Authentication Mode", therefore I need to be able to use the built-in Kerberos/NTLM authentication which is part of Windows.
+
+## PowerShell to the rescue
+
+Thanks to PowerShell for having tight integration with Windows, I can run PowerShell as the user or the service account that have access to the database server, run a basic script that can query DB and fetch the data I need.
+
+The data returned from the query is a native PowerShell object (array) and we can use PowerShell cmdlets like Select-Object or Where-Object to further filter out what we want.
+
+There was also a time where I also used regex to select the specific data I want. From my experience, trying to use regex in a SQL query wasn't so easy for me. If you haven't used regex before, you should check out my [previous blog post here.](https://lexdsolutions.com/2021/10/why-regex-is-so-powerful-and-you-should-use-it/)
+
+## How to query SQL Server using PowerShell
+
+Here is a snippet of a small DB containing some users
+
+<ImageZoom src="/images/ps-sql-image.png" client:load />
+
+**The function to call**
+
+I like to wrap commonly used code into a function so I can re-use this wherever I need within the script.
+
+```powershell
+function ExecuteSqlQuery {
+    param([string]$Server, [string]$Database, [string]$SQLQuery)
+
+    $Datatable = New-Object System.Data.DataTable
+
+    $Connection = New-Object System.Data.SQLClient.SQLConnection
+    $Connection.ConnectionString = "server='$Server';database='$Database';trusted_connection=true;"
+    $Connection.Open()
+    $Command = New-Object System.Data.SQLClient.SQLCommand
+    $Command.Connection = $Connection
+    $Command.CommandText = $SQLQuery
+    $Reader = $Command.ExecuteReader()
+    $Datatable.Load($Reader)
+    $Connection.Close()
+
+    return $Datatable
+}
+```
+
+**Writing the query and calling the function**
+
+This is a very simply select \* record query. You can write any SQL queries here to suit your purpose.
+
+```powershell
+[string]$Query = @("
+SELECT *
+FROM
+Users
+")
+
+$result = ExecuteSqlQuery -Server server01.lexd.local -Database LEXD_TEST -SQLQuery $Query
+```
+
+**Result returns back as an array object**
+
+```powershell
+PS C:\Users\adm_alex> $result.GetType()
+
+IsPublic IsSerial Name                                     BaseType
+-------- -------- ---- --------
+True     True     Object[]                                 System.Array
+
+
+
+PS C:\Users\adm_alex> $result | Out-Host
+
+Name                 Gender     Suburb               Contact
+---- ------ ------ -------
+Alex                 Male       Sydney               123456789
+Bob                  Male       Melbourne            234567891
+Stella               Female     Perth                345678912
+Jill                 Female     Sydney               456789123
+```
+
+**Using native PowerShell to handle the response**
+
+```powershell
+##################################################
+# Using Select-Object to only show Name and Suburb
+$result | Select-Object Name,Suburb
+
+# Output
+Name                 Suburb
+---- ------
+Alex                 Sydney
+Bob                  Melbourne
+Stella               Perth
+Jill                 Sydney
+
+##########################################
+# Using Where-Object to filter out objects
+$result | Where-Object {$_.Suburb -like "Syd*"}
+
+# Output
+Name                 Gender     Suburb               Contact
+---- ------ ------ -------
+Alex                 Male       Sydney               123456789
+Jill                 Female     Sydney               456789123
+
+
+#####################################################################
+# Using regex to filter a contact number where "456" is in the middle
+$regexResult = @()
+$MyRegex = '\d{3}(456)\d{3}.+'
+$result | ForEach-Object {
+  if (($_.Contact | Select-String -Pattern $MyRegex  | ForEach-Object {$_.matches.groups})) {
+    $regexResult += $_
+  }
+}
+
+$regexResult | Out-Host
+
+# Output
+Name                 Gender     Suburb               Contact
+---- ------ ------ -------
+Alex                 Male       Sydney               123456789
+```
+
+## Conclusion
+
+PowerShell can come in handy whenever I need to deal with Active Directory or MS SQL Servers. I hope you find this post useful and please feel free to leave a comment or feedback below.

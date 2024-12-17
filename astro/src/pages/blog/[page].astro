@@ -1,0 +1,70 @@
+---
+import ListCategories from '@/components/ListCategories';
+import ListPosts from '@/components/ListPosts';
+import TitlePage from '@/components/TitlePage';
+import BaseLayout from '@/layouts/BaseLayout';
+import { getPosts } from '@/utils';
+
+const POSTS_PER_PAGE = 8;
+const allPosts = await getPosts();
+const { page } = Astro.params;
+const currentPage = parseInt(page) || 1;
+const start = (currentPage - 1) * POSTS_PER_PAGE;
+const end = start + POSTS_PER_PAGE;
+const posts = allPosts.slice(start, end);
+
+const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
+
+function createPageLink(pageNumber) {
+  return pageNumber === 1 ? '/blog/' : `/blog/${pageNumber}/`;
+}
+
+export async function getStaticPaths() {
+  const allPosts = await getPosts();
+  const POSTS_PER_PAGE = 8;
+  const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
+
+  return Array.from({ length: totalPages }).map((_, i) => ({
+    params: { page: (i + 1).toString() }, // `page` param corresponds to [page].astro
+  }));
+}
+---
+
+<BaseLayout title={`Blog - Page ${currentPage}`}>
+  <TitlePage title="Lexd Solutions | Tech Blog" />
+  <ListCategories />
+  <div>
+    <h2 class="text-lg font-medium tracking-wide text-end">Latest Posts</h2>
+    <ListPosts FirstBig={true} posts={posts} />
+    <nav class="flex justify-center items-center mt-8 space-x-4">
+      {currentPage > 1 && (
+        <a
+          href={createPageLink(currentPage - 1)}
+          class="pb-2.5 font-medium hover:text-gray-800 dark:hover:border-white hover:border-opacity-100 transition-colors duration-150 ease-linear border-black border-b-2 text-black z-10 dark:border-white dark:text-white dark:border-opacity-100 border-opacity-100"
+        >
+          Previous
+        </a>
+      )}
+      {Array.from({ length: totalPages }).map((_, i) => (
+        <a
+          href={createPageLink(i + 1)}
+          class={`pb-2.5 font-medium hover:text-gray-800 dark:hover:border-white hover:border-opacity-100 transition-colors duration-150 ease-linear border-black border-b-2 z-10 ${
+            currentPage === i + 1
+              ? 'text-black dark:text-white border-opacity-100'
+              : 'text-gray-500 dark:text-gray-400 border-opacity-0'
+          }`}
+        >
+          {i + 1}
+        </a>
+      ))}
+      {currentPage < totalPages && (
+        <a
+          href={createPageLink(currentPage + 1)}
+          class="pb-2.5 font-medium hover:text-gray-800 dark:hover:border-white hover:border-opacity-100 transition-colors duration-150 ease-linear border-black border-b-2 text-black z-10 dark:border-white dark:text-white dark:border-opacity-100 border-opacity-100"
+        >
+          Next
+        </a>
+      )}
+    </nav>
+  </div>
+</BaseLayout>

@@ -1,0 +1,117 @@
+---
+title: "AWS Lambda to Send Email via SNS when Jumpbox Exceeds Uptime Threshold"
+description: >-
+  Send email notification when jumpbox uptime exceeds the defined threshold...
+pubDate: 2022/02/21
+category: Automation
+tags:
+  - "aws"
+  - "lambda"
+  - "python"
+heroImage: "../../assets/images/LambdaJumpBox.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+In my [previous post](https://lexdsolutions.com/2022/02/using-python-to-start-stop-jumpbox-on-aws/) I talked about how I've written my own Python script to auto start/stop my AWS EC2 jumpbox. Since I needed to manually execute the script to stop the instance, there may come a time where I forget to do so and this will incur unwanted additional charges on my AWS account.
+
+For this reason, I've also implemented a Lambda function (using Python) that runs hourly to check the instance uptime and it will send me an email notification via SNS when the instance uptime is above my defined threshold.
+
+## How the script works
+
+Using CloudWatch, it will trigger my Lambda Function every hour and will do the following:
+
+- If the jumpbox instance is running for more than the "NOTIFICATION\_THRESHOLD", then send out a notification via SNS.
+- If the jumpbox instance is running for more than the "UPTIME\_THRESHOLD", then **stop** the instance and send out a notification via SNS.
+
+**Note**: The NOTIFICATION\_THRESHOLD and UPTIME\_THRESHOLD are environmental variables defined in the Lambda function itself.
+
+Example email notifications:
+<ImageZoom src="/images/2022-02-15-20_40_36-Inbox-LEXD-Solution-Mail.png" client:load />
+
+<ImageZoom src="/images/2022-02-15-20_42_24-Inbox-LEXD-Solution-Mail.png" client:load />
+
+## The script
+
+For those that are interested in the script itself, you can find the script in my [GitHub repository](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lambda-jumpbox-uptime).
+
+## Deploy using AWS S3, GitHub Actions and Terraform
+
+In this section, I will cover how I've used GitHub Actions to automatically push the code over to AWS S3 and then use Terraform to create the Lambda function + IAM role/policies for me.
+
+**S3 Bucket with Object Versioning**
+
+Before we begin, an AWS S3 bucket with versioning is required. I created this resource by using Terraform.
+
+```hcl
+resource "aws_s3_bucket" "lambda_s3_bucket" {
+  bucket = var.lambda_s3_bucket_name
+  acl    = "private"
+
+  versioning {
+    enabled = true
+  }
+
+    lifecycle_rule {
+    enabled = true
+
+    abort_incomplete_multipart_upload_days = 1
+
+    noncurrent_version_expiration {
+      days = 3
+    }
+
+    expiration {
+      expired_object_delete_marker = true
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "lambda_s3_bucket_block_public" {
+  bucket = aws_s3_bucket.lambda_s3_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+```
+
+**GitHub Docker Container Actions**
+
+The default runner by GitHub is very limited and does not provide the tooling required to talk to AWS such as the AWSCLI. In my [previous blog post here](https://lexdsolutions.com/2022/01/creating-a-github-docker-container-action-to-upload-an-object-to-aws-s3/), I talk about how I created this GitHub Action. I recommend you to take a look to get a better understand of how this all works.
+
+**Using Terraform to create the Lambda function**
+
+By default Terraform will not detect any changes if S3 object versioning is not used. This is because Terraform have not detected any changes to the template itself.
+
+Now thanks to S3 object versioning, Terraform will detect a different version\_id and it will update the Lambda function for me whenever a new piece of code is uploaded to S3 via GitHub Actions.
+
+Example of the Terraform resource:
+
+```hcl
+data "aws_s3_bucket_object" "lambda_zip" {
+  bucket  = var.s3_bucket_name
+  key     = var.s3_lambda_zip
+}
+
+resource "aws_lambda_function" "lambda_function" {
+  function_name = var.lambda_func_name
+  description   = var.lambda_func_description
+  role          = aws_iam_role.iam_for_lambda.arn
+  handler       = "main.handler"
+
+  s3_bucket         = data.aws_s3_bucket_object.lambda_zip.bucket
+  s3_key            = data.aws_s3_bucket_object.lambda_zip.key
+  s3_object_version = data.aws_s3_bucket_object.lambda_zip.version_id  # <------------
+
+  runtime = "python3.8"
+
+  environment {
+    variables = var.lambda_environment_variables
+  }
+}
+```
+
+## Conclusion
+
+Now I can sit back and relax and if I ever forget to stop my jumpbox instance, I will be notified automatically.

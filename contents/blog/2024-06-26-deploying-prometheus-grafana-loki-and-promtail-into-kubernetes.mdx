@@ -1,0 +1,178 @@
+---
+title: "Deploying Prometheus, Grafana, Loki and Promtail into Kubernetes"
+description: >-
+  How to deploy Prometheus, Grafana, Loki and Promtail into Kubernetes...
+pubDate: 2024/06/26
+category: Building this Blog
+tags:
+  - "kubernetes"
+heroImage: "../../assets/images/Prometheus-Grafana-Loki-Promtail-1.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+I have completed this piece of work about 3 months ago, but I didn't have the time to write a blog about it. So here it is, lets hope I can remember what I have done :)
+
+First thing first, as always, the code is available on my [GitHub repo](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/3-app-configuration/prometheus-grafana-helm) if you want to jump straight there.
+
+**Disclaimer:** This is not production ready as I have not included any configurations for large scale deployments, however this works well for any personal projects you may have or want to learn and test out these products on how it works.
+
+Please also note that I am using a "local-path" provisioner for persistent storage. Reason is because I am running a single worker node cluster for simplicity.
+
+## Credits
+
+Before continuing, I would like to give credits to devopscube.com for deploying Prometheus and Grafana.
+
+What I've built here is based on the following:
+
+- [https://devopscube.com/setup-prometheus-monitoring-on-kubernetes/](https://devopscube.com/setup-prometheus-monitoring-on-kubernetes/)
+- [https://devopscube.com/setup-kube-state-metrics/](https://devopscube.com/setup-kube-state-metrics/)
+- [https://devopscube.com/node-exporter-kubernetes/](https://devopscube.com/node-exporter-kubernetes/)
+
+All was done by me is wrapped the provided manifests into my own custom Helm chart for the ease of deployment.
+
+## **What is Prometheus and Grafana?**
+
+Prometheus and Grafana together provides monitoring capability (e.g. CPU, RAM, storage consumption etc) for my Kubernetes cluster.
+
+- Prometheus - Collects and stores its metrics as time series data.
+
+- Grafana - Enables query, visualisation, alerts, exploring metrics and logs.
+
+Here is an example of my Grafana Dashboard to show the health of my cluster.
+
+<ImageZoom src="/images/prom-graf-image-1.png" client:load />
+
+
+## My Prometheus and Grafana Chart
+
+There really isn't much besides wrapping all the manifests provided by devopscube.com. However there were some configurable items which I think should be made as variables, so I have added them into my [values.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/values.yaml) and then updated the template manifests to reference them as variables.
+
+The namespace called "logging" is created by my Ansible playbook which provisioned by cluster, so please make sure if you are deploying this chart, you have pre-created the namespace.
+
+To deploy the chart I simply run:
+
+```shell
+helm upgrade --install prometheus-grafana .
+```
+
+## What is Loki and Promtail?
+
+Loki and Promtail together provides logging capability for my pods.
+
+- Promtail - An agent which ships the contents of local logs to Loki instance.
+
+- Loki - A log aggregation system.
+
+**Querying the Logs**
+
+Grafana is configured to query Loki as a data source, this enables me to use Grafana as my centralised dashboard for both metrics and logs.
+
+Here is an example of how I use Grafana to view my logs in Loki.
+
+<ImageZoom src="/images/prom-graf-image-2.png" client:load />
+
+## Deploying Loki and Promtail
+
+Since Loki and Promtail already comes as a Helm Chart, what I did is created my own values.yaml and then pass in the values I require for my deployment. Here is how I did it
+
+```
+# Add repo
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+```
+
+Deploying Loki using [values-grafana-loki.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/values-grafana-loki.yaml)
+
+```shell
+# Tip: Run `helm show values grafana/loki` to determine all available values configurable for the chart.
+
+helm upgrade loki \
+ --install \
+ --namespace grafana-loki \
+ --create-namespace \
+ --values values-grafana-loki.yaml \
+ --version "5.47.1" \
+ grafana/loki
+```
+
+Deploying Promtail using [values-promtail.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/values-promtail.yaml)
+
+```shell
+# Tip: Run `helm show values grafana/promtail` to determine all available values configurable for the chart.
+
+helm upgrade promtail \
+ --install \
+ --namespace grafana-loki \
+ --values values-promtail.yaml \
+ --version "6.15.5" \
+ grafana/promtail
+```
+
+## Configuring Grafana Data Sources
+
+When Grafana starts up, it uses a predefined configuration so it knows how to read data from Prometheus and Loki. This is configured under [grafana-config.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/templates/grafana-config.yaml)
+
+For example:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: {{ .Values.namespace }}
+data:
+  prometheus.yaml: |-
+    {
+        "apiVersion": 1,
+        "datasources": [
+            {
+               "access":"proxy",
+                "editable": true,
+                "name": "prometheus",
+                "orgId": 1,
+                "type": "prometheus",
+                "url": "http://prometheus-service.{{ .Values.namespace }}.svc:8080",
+                "version": 1
+            },
+            {
+               "access":"proxy",
+                "editable": true,
+                "name": "loki",
+                "orgId": 1,
+                "type": "loki",
+                "url": "{{ .Values.loki.url_endpoint }}",
+                "version": 1
+            }
+        ]
+    }
+```
+
+The [grafana-deployment.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/templates/grafana-deployment.yaml) references the ConfigMap above so it knows how to read the data sources accordingly.
+
+## SMTP for Alerting
+
+To setup SMTP, the configuration must be set in the `/etc/grafana/grafana.ini`. As I didn't want to manually copy the content of this file and put it into a ConfigMap because the file contains 1500 lines.
+
+Also if newer versions are released, this file may change and it could potentially break things.
+
+To work with custom configuration, I have used environment variables. See: [https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/)
+
+In the [./templates/grafana-deployment.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/templates/grafana-deployment.yaml), I am configuring the SMTP settings and the credentials are taken from Kubernetes as secrets.
+
+The secrets are manually created on the cluster for security reasons. The following is executed to create the secrets:
+
+```
+kubectl create secret -n monitoring generic grafana-config-smtp \
+ --type string \
+ --from-literal=fromaddr=some-email@sample.com \
+ --from-literal=username=some-email@sample.com \
+ --from-literal=password=abc123
+```
+
+Here is an example of an email notification
+
+<ImageZoom src="/images/prom-graf-image.png" client:load />
+
+## Conclusion
+
+Now that I have monitoring, logging and alerts setup for my cluster, this provides me a great piece of mind knowing that everything is running smoothly :)

@@ -1,0 +1,115 @@
+---
+title: "GitHub Actions - Generate Terraform Docs"
+description: >-
+  Auto generate Terraform docs using GitHub Actions
+pubDate: 2023/01/03
+category: Automation
+tags:
+  - "terraform"
+heroImage: "../../assets/images/GitHub-Actions-tfocs.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+Can't believe it's already 2023!? Happy new year everyone!
+
+For the past 6 months or so I've been trying to write at least one blog post per month but in December 2022, it has been a busy month for me and haven't got the time to write my blog.
+
+So here's one about terraform-docs.
+
+## So what is terraform-docs?
+
+When we write Terraform modules and commit them into git, terraform-docs can generate a markdown document and use it as the README.md to store alongside with the source code.
+
+The benefit here is to provide a quick overview for the person who is looking at how to use the module you created. The document created allows the person to quickly and easily see the requirements for module, the inputs, descriptions, type and any default values you may be setting.
+
+Here is an example of the markdown it creates:
+<ImageZoom src="/images/markdown-table-output.png" client:load />
+_Original source: [https://terraform-docs.io/user-guide/introduction](https://terraform-docs.io/user-guide/introduction)_
+
+
+## How I configured GitHub Actions
+
+Some businesses require the person submitting the PR (pull request/merge request) to first run terraform-docs locally and include the README.md into their PR. I personally rather have this be automated when the PR is created and get the pipeline/workflow to handle this.
+
+For my GitHub Actions, I am using the pre-existing action created by terraform-docs themselves and therefore I must follow their configuration inputs. See: [terraform-docs/gh-actions@v1.0.0](https://github.com/terraform-docs/gh-actions/tree/v1.0.0)
+
+Since I am using a single repository that contains various code, I have to created a "terraform-docs-paths.json" that contains the paths to where my Terraform code is located within the repo.
+
+Here is what the content looks like:
+
+```yaml
+[
+  "aws-wordpress/1-infra-configuration/2-general-setup",
+  "aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster",
+  "aws-wordpress/3-app-configuration/lambda-auto-tag-ebs-volumes",
+  "aws-wordpress/3-app-configuration/lambda-jumpbox-uptime"
+]
+```
+
+From here, my [workflow](https://github.com/88lexd/lexd-solutions/blob/main/.github/workflows/generate-terraform-docs.yml) which contains the following content, I am using Python to first parse the JSON file into a comma separated list and then use it as the "working-dir" input to the action which I am calling.
+
+```yaml
+name: Generate terraform docs on PR
+on:
+  - pull_request
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
+
+    - name: Generate a comma seperated list of paths for Terraform docs action
+      id: generate_dir_list
+      run: |
+        pwd
+        ls -l
+        python3 <<EOL >>$GITHUB_OUTPUT
+        import json
+        with open('terraform-docs-paths.json', 'r') as f:
+            tf_dirs = (','.join(json.load(f)))
+            print(f"dirs={tf_dirs}")
+        EOL
+
+    - name: Render terraform docs and push changes back to PR branch
+      uses: terraform-docs/gh-actions@v1.0.0
+      with:
+        working-dir: ${{ steps.generate_dir_list.outputs.dirs }}
+        output-file: README.md
+        output-method: inject
+        git-push: "true"
+```
+
+As shown above, I am also telling the GitHub action to set the output file as README.md and have it pushed back the changes into git for me. It is also important to note that if I already have an existing README.md, this action will use the "inject" method to append the output into my file.
+
+The generate terraform-docs is placed within the `<!-- BEGIN_TF_DOCS -->` and `<!-- END_TF_DOCS -->` delimiters. For an example, see line 82 and 180 below:
+
+```
+$ cat README.md | grep -n -B3 -A3 TF_DOCS
+79- - S3 buckets for Lambdas and CodeDeploy
+80- - CodeDeploy (app and deployment group)
+81-
+82:<!-- BEGIN_TF_DOCS -->
+83-## Requirements
+84-
+85-| Name | Version |
+--
+177-## Outputs
+178-
+179-No outputs.
+180:<!-- END_TF_DOCS -->
+```
+
+## Conclusion
+
+Now thanks to this workflow, whenever I create a pull request, the workflow will automatically generate the terraform-docs for me without having to worry about running this myself ever again.
+
+Here you can see some real world examples of the generated docs from my repo:
+
+- [https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/1-infra-configuration/2-general-setup](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/1-infra-configuration/2-general-setup)
+- [https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lambda-auto-tag-ebs-volumes](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lambda-auto-tag-ebs-volumes)
+- [https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lambda-jumpbox-uptime](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lambda-jumpbox-uptime)
+
+For my next blog post, I am looking to talk about how on AWS you can create your own KMS key for EBS encryption and allow Auto Scaling Group to use that key. It may sound simple but the challenge is if you have a brand new AWS account which you have not deployed any ASG before, there will not be a service-linked role available for you to configure the KMS key policy. More details to come in my next blog, so stay tuned!

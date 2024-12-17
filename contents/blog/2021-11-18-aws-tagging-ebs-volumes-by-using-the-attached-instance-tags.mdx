@@ -1,0 +1,121 @@
+---
+title: "AWS - Tagging EBS Volumes by Using the Attached Instance Tags"
+description: >-
+  Tags on AWS is very useful. It can be used for billing, identifying resources and filtering etc...
+pubDate: "2021/11/18"
+category: Automation
+tags:
+  - "aws"
+  - "python"
+heroImage: "../../assets/images/ebs_vol_tagging.png"
+---
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+**Update as of 31st Jan 2022** - I've developed a Lambda function to automatically tag an EBS volume when it is attached to an instance. To find out more, check out my post here:
+
+https://lexdsolutions.com/2022/01/auto-tag-ebs-volumes-by-using-eventbridge-and-lambda/
+
+Tags on AWS is very useful. It can be used for billing, identifying resources and filtering etc.
+
+When you are creating EBS volumes manually on AWS and then attaching them to EC2 instances, you may notice that any existing or future tags added to the instances, these tags are not reflected on the volumes itself.
+
+This can get very messy in environments where tags are often an after thought.
+
+There was a time in my career that I've seen an environment with tons of EBS volumes with no tags! not even a name tag! This made reporting and filtering extremely difficult, so I've developed a quick script to tag those volumes by using the same tags that are applied on the attached instances.
+
+I recall this script being pretty useful for me and so I decided to rewrite another one for this blog post.
+
+## Using Python (AWS Boto3) to Tag EBS Volumes
+
+First and foremost, you can find the source code on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/misc-scripts/python-aws-tag-ebs-volumes).
+
+### Prior Executing the Script
+
+Before I dig into the code, I would like to show some examples with screenshots.
+
+Here you can see that this EC2 instance have 3 tags applied:
+
+- Department = Awesome Department
+- Name = TinyInstance
+- Environment = Production
+
+<ImageZoom src="/images/2021-11-18-11_46_10-Instances-_-EC2-Management-Console.png" client:load />
+
+On this same instance, you can see there are 2 volumes attached:
+
+- /dev/xvda = the default root volume when the instance is created
+- /dev/sdf = the volume which I manually created and this is where the script will apply the tag for me.
+
+<ImageZoom src="/images/2021-11-18-11_47_28-Instances-_-EC2-Management-Console.png" client:load />
+
+The additional volume I've created already contain a pre-existing tag. We do not want to overwrite this!
+
+<ImageZoom src="/images/2021-11-18-11_51_05-EC2-Management-Console.png" client:load />
+
+^_Note for the above: The volume with the name "I am not in use" is to show that if there is no attached instance for the volume, the script will skip the tagging process_ for this volume.
+
+## Tag the Volumes Through Automation
+
+First create a text file that contains the volume id's which you would like the script to run against.
+
+_Important Note: All volumes must reside in the "same region_".
+
+Example:
+
+```
+$ cat /tmp/volumes.txt
+vol-03075aac92c018501
+vol-0adb09fd484746be8
+```
+
+Then execute the Python script. Example:
+
+```
+$ source ./venv/bin/activate
+(venv) $ python3 tag_ebs_volumes.py --region ap-southeast-2 --file /tmp/volumes.txt --profile alex
+
+===================================
+AWS Tag EBS volumes by Alex Dinh
+===================================
+Using the following as script input:
+  - AWS Profile: alex
+  - AWS Region: ap-southeast-2
+  - EBS Volume ID File: /tmp/volumes.txt
+
+Continue with the script? (yes/no): yes
+
+Connecting into AWS...
+Successfully connected into AWS using - arn:aws:sts::123456789123:assumed-role/LEXD-Admin/LEXD-Admin
+
+Begin tagging EC2 volumes!
+================================================================
+Volume ID [vol-03075aac92c018501] is attached to [i-0c748ea843e7ab6f5]
+
+The instance [i-0c748ea843e7ab6f5] contains the following tags:
+ - Department: Awesome Department
+ - Environment: Production
+ - Name: TinyInstance
+Tagging volume
+Tagging volume completed!
+================================================================
+Volume ID [vol-0adb09fd484746be8] has no attachments
+Skipped tagging this volume
+
+Script completed!
+```
+
+Now we can check the volume again. Here you can see that the volume now contains the "additional" tags and it retained the existing tag.
+
+_Note: If the existing tag has the same key name as the instance, then it will be overwritten by the instance tag._
+
+<ImageZoom src="/images/2021-11-18-12_01_22-EC2-Management-Console.png" client:load />
+
+## Side Note
+
+As a security best practice, before I executed this script, I had to assume role into my Admin role first. To learn more about what Assume Role is, take a look at my previous [blog post](https://lexdsolutions.com/2021/09/how-to-assume-role-on-aws-and-using-python/).
+
+## Conclusion
+
+The great thing about AWS is that there are many ways that this can be achieved. As I completed writing this script, I thought why didn't I allow CloudWatch to trigger a Lambda function to automatically tag the volumes instead? I guess I wanted more control at first by passing in an input list of volume ID's...
+
+Anyway, if there is an interest in that then I can wrap this all up and make it available to deploy as a stack by using Terraform or CloudFormation. Leave a comment below or use the contact form if you are interested and I will spend some time on that :)

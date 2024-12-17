@@ -1,0 +1,340 @@
+---
+title: "Kubernetes - How to Replace Docker Runtime with Containerd"
+description: >-
+  Replacing Docker runtime in Kubernetes with Containerd
+pubDate: 2022/01/17
+category: Building this Blog
+tags:
+  - "kubernetes"
+heroImage: "../../assets/images/ReplaceDockerWithContainerd.png"
+---
+
+If you have not already seen the [blog post](https://kubernetes.io/blog/2022/01/07/kubernetes-is-moving-on-from-dockershim/) by Kubernetes, they are removing dockershim in the upcoming v1.24 release
+
+## Why is Kubernetes moving away from dockershim?
+
+> Docker was the first container runtime used by Kubernetes. This is one of the reasons why Docker is so familiar to many Kubernetes users and enthusiasts. Docker support was hardcoded into Kubernetes – a component the project refers to as dockershim. As containerization became an industry standard, the Kubernetes project added support for additional runtimes. This culminated in the implementation of the container runtime interface (CRI), letting system components (like the kubelet) talk to container runtimes in a standardized way. As a result, dockershim became an anomaly in the Kubernetes project. Dependencies on Docker and dockershim have crept into various tools and projects in the CNCF ecosystem, resulting in fragile code.
+>
+> https://kubernetes.io/blog/2022/01/07/kubernetes-is-moving-on-from-dockershim/
+
+## How to Replace Docker with Containerd
+
+Here I will show how I've replaced Docker runtime with containerd in my K8s cluster.
+
+### Pre-Checks
+
+First begin by confirming the container runtime which your K8s cluster is running on. In this example, you can see that all 3 nodes are using "docker://20.10.12" under the "CONTAINER-RUNTIME" column.
+
+```
+alex@masternode:~$ kubectl get nodes -o wide
+NAME          STATUS   ROLES                  AGE     VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION     CONTAINER-RUNTIME
+masternode    Ready    control-plane,master   3d16h   v1.22.4   192.168.0.10   <none>        Ubuntu 20.04.3 LTS   5.4.0-91-generic   docker://20.10.12
+workernode1   Ready    <none>                 3d16h   v1.22.4   192.168.0.11   <none>        Ubuntu 20.04.3 LTS   5.4.0-91-generic   docker://20.10.12
+workernode2   Ready    <none>                 4m20s   v1.22.4   192.168.0.13   <none>        Ubuntu 20.04.3 LTS   5.4.0-94-generic   docker://20.10.12
+```
+
+### Begin with first worker node
+
+On a machine with kubectl, cordon and drain the first worker node.
+
+```
+alex@masternode:~$ kubectl cordon workernode1
+node/workernode1 cordoned
+
+alex@masternode:~$ kubectl drain workernode1 --ignore-daemonsets --force
+node/workernode1 already cordoned
+WARNING: deleting Pods not managed by ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet: default/tools; ignoring DaemonSet-managed Pods: ingress/ingress-ingress-nginx-controller-4cxzc, kube-system/kube-proxy-qrmfk, kube-system/weave-net-4nxzm
+evicting pod dev/wordpress-69ddf5f8c7-r8xn9
+evicting pod default/tools
+evicting pod default/nfs-subdir-external-provisioner-77cd49877f-dkdwk
+evicting pod dev/mysql-wordpress-db69dd79-b7bhq
+evicting pod dev/wordpress-69ddf5f8c7-lz4tt
+pod/nfs-subdir-external-provisioner-77cd49877f-dkdwk evicted
+pod/wordpress-69ddf5f8c7-r8xn9 evicted
+pod/wordpress-69ddf5f8c7-lz4tt evicted
+pod/mysql-wordpress-db69dd79-b7bhq evicted
+pod/tools evicted
+node/workernode1 evicted
+```
+
+Confirm pods are now rescheduled to another node. Here you can see that all the pods are now running on workernode2.
+
+```
+alex@masternode:~$ kubectl get pods -n dev -o wide
+NAME                             READY   STATUS    RESTARTS   AGE    IP            NODE          NOMINATED NODE   READINESS GATES
+mysql-wordpress-db69dd79-8tbkx   1/1     Running   0          80s    172.16.96.3   workernode2   <none>           <none>
+wordpress-69ddf5f8c7-26c5x       1/1     Running   0          80s    172.16.96.4   workernode2   <none>           <none>
+wordpress-69ddf5f8c7-stt7b       1/1     Running   0          5m2s   172.16.96.2   workernode2   <none>           <none>
+wordpress-69ddf5f8c7-tx58w       1/1     Running   0          80s    172.16.96.6   workernode2   <none>           <none>
+wordpress-69ddf5f8c7-vxdw7       1/1     Running   0          5m2s   172.16.96.1   workernode2   <none>           <none>
+```
+
+**Note**: The tasks below will be executed directly on the worker node itself.
+
+Stop and disable the kubelet service on the worker node.
+
+```
+alex@workernode1:~$ sudo systemctl disable kubelet && sudo systemctl stop kubelet
+Removed /etc/systemd/system/multi-user.target.wants/kubelet.service.
+
+alex@workernode1:~$ sudo systemctl status kubelet.service | head -5
+● kubelet.service - kubelet: The Kubernetes Node Agent
+     Loaded: loaded (/lib/systemd/system/kubelet.service; disabled; vendor preset: enabled)
+    Drop-In: /etc/systemd/system/kubelet.service.d
+             └─10-kubeadm.conf
+     Active: inactive (dead)
+
+```
+
+Remove all existing docker packages (I am also purging all configs to be clean)
+
+```
+alex@workernode1:~$ sudo apt-get remove --purge containerd.io docker-ce docker-ce-cli
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  docker-ce-rootless-extras docker-scan-plugin pigz slirp4netns
+Use 'sudo apt autoremove' to remove them.
+The following packages will be REMOVED:
+  containerd.io* docker-ce* docker-ce-cli*
+0 upgraded, 0 newly installed, 3 to remove and 44 not upgraded.
+After this operation, 375 MB disk space will be freed.
+Do you want to continue? [Y/n] y
+(Reading database ... 114615 files and directories currently installed.)
+Removing docker-ce (5:20.10.12~3-0~ubuntu-focal) ...
+Warning: Stopping docker.service, but it can still be activated by:
+  docker.socket
+Removing containerd.io (1.4.12-1) ...
+Removing docker-ce-cli (5:20.10.12~3-0~ubuntu-focal) ...
+Processing triggers for man-db (2.9.1-1) ...
+(Reading database ... 114397 files and directories currently installed.)
+Purging configuration files for docker-ce (5:20.10.12~3-0~ubuntu-focal) ...
+Purging configuration files for containerd.io (1.4.12-1) ...
+Processing triggers for systemd (245.4-4ubuntu3.15) ...
+```
+
+_**Note**: The following modules-load-d and systctl.d config is based on the official [Kubernetes documentation](https://kubernetes.io/docs/setup/production-environment/container-runtimes/) for containerd. I already had the other configs when I configured Docker, so I only needed to append these additional configurations._
+
+_**Note 2:** Your filename may be different so please check before running these commands!._
+
+```
+# Double check your filename!
+echo "overlay" | sudo tee -a /etc/modules-load.d/k8s.conf
+sudo modprobe overlay
+
+# Double check your filename!
+echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.d/k8s.conf
+sudo sysctl --system
+```
+
+**Note:** _FYI, the next couple steps are referenced from the official [containerd documentation](https://github.com/containerd/containerd/blob/main/docs/cri/installation.md)._
+
+Download the containerd tarball.
+
+```
+alex@workernode1:~$ wget https://github.com/containerd/containerd/releases/download/v1.5.9/cri-containerd-cni-1.5.9-linux-amd64.tar.gz
+--2022-01-17 12:09:17-- https://github.com/containerd/containerd/releases/download/v1.5.9/cri-containerd-cni-1.5.9-linux-amd64.tar.gz
+Resolving github.com (github.com)... 13.237.44.5
+Connecting to github.com (github.com)|13.237.44.5|:443... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://objects.githubusercontent.com/github-production-release-asset-2e65be/46089560/e6ef531b-7944-43e0-bbd3-032590a4d8bb?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220117%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220117T010753Z&X-Amz-Expires=300&X-Amz-Signature=137e650f59a0b171ee5d4eae8f906cf6ecee55572c2b93f48e330b03d604bc09&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=46089560&response-content-disposition=attachment%3B%20filename%3Dcri-containerd-cni-1.5.9-linux-amd64.tar.gz&response-content-type=application%2Foctet-stream [following]
+--2022-01-17 12:09:17-- https://objects.githubusercontent.com/github-production-release-asset-2e65be/46089560/e6ef531b-7944-43e0-bbd3-032590a4d8bb?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220117%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220117T010753Z&X-Amz-Expires=300&X-Amz-Signature=137e650f59a0b171ee5d4eae8f906cf6ecee55572c2b93f48e330b03d604bc09&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=46089560&response-content-disposition=attachment%3B%20filename%3Dcri-containerd-cni-1.5.9-linux-amd64.tar.gz&response-content-type=application%2Foctet-stream
+Resolving objects.githubusercontent.com (objects.githubusercontent.com)... 185.199.108.133, 185.199.111.133, 185.199.110.133, ...
+Connecting to objects.githubusercontent.com (objects.githubusercontent.com)|185.199.108.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 127092433 (121M) [application/octet-stream]
+Saving to: ‘cri-containerd-cni-1.5.9-linux-amd64.tar.gz’
+
+cri-containerd-cni-1.5.9-linux-amd64.tar.gz           100%[========================================================================================================================>] 121.20M  36.8MB/s    in 4.6s
+
+2022-01-17 12:09:22 (26.2 MB/s) - ‘cri-containerd-cni-1.5.9-linux-amd64.tar.gz’ saved [127092433/127092433]
+```
+
+Extract the tarball.
+
+```
+alex@workernode1:~$ sudo tar --no-overwrite-dir -C / -xzf cri-containerd-cni-1.5.9-linux-amd64.tar.gz
+```
+
+If you don't already have an existing /etc/containerd/config.toml file, then generate one by running:
+
+```
+alex@workernode1:~$ sudo mkdir /etc/containerd
+alex@workernode1:~$ sudo containerd config default | sudo tee /etc/containerd/config.toml
+
+# Note: If you already have an existing file then make sure disabled_plugins is not disabling CRI
+# e.g. disabled_plugins = [""]
+```
+
+Delete the extracted CNI config that came with the tarball (this can interfere with an existing CNI)
+
+```
+alex@workernode1:~$ sudo rm -f /etc/cni/net.d/10-containerd-net.conflist
+```
+
+Add the following args to the kubelet service.
+
+```
+--container-runtime=remote --container-runtime-endpoint=/run/containerd/containerd.sock
+```
+
+Example:
+
+```
+# BEFORE
+alex@workernode1:~$ sudo cat /var/lib/kubelet/kubeadm-flags.env
+KUBELET_KUBEADM_ARGS="--network-plugin=cni --pod-infra-container-image=k8s.gcr.io/pause:3.5"
+
+alex@workernode1:~$ sudo vi /var/lib/kubelet/kubeadm-flags.env
+
+# AFTER
+alex@workernode1:~$ cat /var/lib/kubelet/kubeadm-flags.env
+KUBELET_KUBEADM_ARGS="--network-plugin=cni --pod-infra-container-image=k8s.gcr.io/pause:3.5 --container-runtime=remote --container-runtime-endpoint=/run/containerd/containerd.sock"
+
+```
+
+Start and enable containerd service.
+
+```
+alex@workernode1:~$ sudo systemctl daemon-reload && sudo systemctl enable containerd && sudo systemctl start containerd
+
+alex@workernode1:~$ sudo systemctl status containerd.service | head -5
+● containerd.service - containerd container runtime
+     Loaded: loaded (/etc/systemd/system/containerd.service; disabled; vendor preset: enabled)
+     Active: active (running) since Mon 2022-01-17 12:10:40 AEDT; 51s ago
+       Docs: https://containerd.io
+    Process: 74410 ExecStartPre=/sbin/modprobe overlay (code=exited, status=0/SUCCESS)
+
+```
+
+Start and enable the kubelet service.
+
+```
+alex@workernode1:~$ sudo systemctl enable kubelet && sudo systemctl restart kubelet
+Created symlink /etc/systemd/system/multi-user.target.wants/kubelet.service → /lib/systemd/system/kubelet.service.
+
+# Check the status of kubelet
+alex@workernode1:~$ sudo systemctl status kubelet.service | head -5
+● kubelet.service - kubelet: The Kubernetes Node Agent
+     Loaded: loaded (/lib/systemd/system/kubelet.service; enabled; vendor preset: enabled)
+    Drop-In: /etc/systemd/system/kubelet.service.d
+             └─10-kubeadm.conf
+     Active: active (running) since Mon 2022-01-17 12:14:13 AEDT; 4s ago
+```
+
+**Note:** Go back on the machine with kubectl for the next 3 tasks.
+
+Update the worker node annotation so it knows to use containerd instead of docker.
+
+```
+alex@masternode:~$ kubectl annotate node workernode1 --overwrite kubeadm.alpha.kubernetes.io/cri-socket=/var/run/containerd/containerd.sock
+node/workernode1 annotated
+```
+
+Uncordon the worker node.
+
+```
+alex@masternode:~$ kubectl uncordon workernode1
+node/workernode1 uncordoned
+```
+
+Confirm that the node is now using containerd as the container runtime. Here you can mine is using "containerd://1.5.9"
+
+```
+alex@masternode:~$ kubectl get nodes -o wide | grep workernode1
+workernode1   Ready    <none>                 3d17h   v1.22.4   192.168.0.11   <none>        Ubuntu 20.04.3 LTS   5.4.0-94-generic   containerd://1.5.9
+```
+
+### Remaining Worker Nodes
+
+For the remaining worker nodes, repeat the steps above for each node at a time.
+
+### Master Node
+
+The master node is also very similar to a standard worker node. Here I will only show the commands which I've executed without the actual STDOUT.
+
+```
+# Cordon the masternode
+alex@masternode:~$ kubectl cordon masternode
+
+# Drain the masternode
+alex@masternode:~$ kubectl drain masternode --ignore-daemonsets
+
+# Stop and disable kubelet service
+alex@masternode:~$ sudo systemctl stop kubelet; sudo systemctl disable kubelet
+
+# Confirm kubelet status
+alex@masternode:~$ sudo systemctl status kubelet.service | head -5
+
+# Uninstall Docker packages
+alex@masternode:~$ sudo apt-get remove --purge containerd.io docker-ce docker-ce-cli
+
+# Install prereq
+alex@masternode:~$ sudo apt-get update && sudo apt-get install -y libseccomp2
+
+# Download and extract containerd tarball.
+alex@masternode:~$ wget https://github.com/containerd/containerd/releases/download/v1.5.9/cri-containerd-cni-1.5.9-linux-amd64.tar.gz
+alex@masternode:~$ sudo tar --no-overwrite-dir -C / -xzf cri-containerd-cni-1.5.9-linux-amd64.tar.gz
+
+# Generate default config for containerd
+alex@masternode:~$ sudo mkdir /etc/containerd
+alex@masternode:~$ sudo containerd config default | sudo tee /etc/containerd/config.toml
+
+# Delete the default CNI that comes with the tarball
+alex@masternode:~$ sudo rm -f /etc/cni/net.d/10-containerd-net.conflist
+
+# Add the following args to KUBELET_KUBEADM_ARGS in /var/lib/kubelet/kubeadm-flags.env
+# --container-runtime=remote --container-runtime-endpoint=/run/containerd/containerd.sock
+alex@masternode:~$ sudo vi /var/lib/kubelet/kubeadm-flags.env
+alex@masternode:~$ cat /var/lib/kubelet/kubeadm-flags.env
+KUBELET_KUBEADM_ARGS="--network-plugin=cni --pod-infra-container-image=k8s.gcr.io/pause:3.5 --container-runtime=remote --container-runtime-endpoint=/run/containerd/containerd.sock"
+
+# Start and enable containerd service
+alex@masternode:~$ sudo systemctl daemon-reload && sudo systemctl enable containerd && sudo systemctl start containerd
+
+# Confirm containerd is started
+alex@masternode:~$ sudo systemctl status containerd.service | head -5
+
+# Start and enable kubelet service
+alex@masternode:~$ sudo systemctl enable kubelet && sudo systemctl restart kubelet
+Created symlink /etc/systemd/system/multi-user.target.wants/kubelet.service → /lib/systemd/system/kubelet.service.
+
+# Check the kubelet service
+alex@masternode:~$ sudo systemctl status kubelet.service | head -5
+
+# Use crictl to check and wait until all the static pods are running
+alex@masternode:~$ sudo crictl ps
+CONTAINER           IMAGE               CREATED             STATE               NAME                      ATTEMPT             POD ID
+d98403829fa6c       7f92d556d4ffe       22 seconds ago      Running             weave-npc                 2                   c3f3bf10c313b
+7a95100ebdc74       df29c0a4002c0       27 seconds ago      Running             weave                     3                   c3f3bf10c313b
+868fe4a138238       8f8fdd6672d48       35 seconds ago      Running             kube-proxy                2                   1557e3a21b0c4
+47a8a203c98a3       0048118155842       46 seconds ago      Running             etcd                      2                   b73ad0aa19901
+eb1985e59d015       059e6cd8cf78e       52 seconds ago      Running             kube-apiserver            2                   51009f2162ea4
+6f086b353506d       935d8fdc2d521       56 seconds ago      Running             kube-scheduler            2                   ccfce96435ba1
+4eadd77a4590d       04185bc88e08d       58 seconds ago      Running             kube-controller-manager   2                   6c46620c55863
+
+# Update the annotation on the master node
+alex@masternode:~$ kubectl annotate node masternode --overwrite kubeadm.alpha.kubernetes.io/cri-socket=/var/run/containerd/containerd.sock
+
+# Uncordon the master node
+alex@masternode:~$ kubectl uncordon masternode
+```
+
+## Final Check
+
+Use the "kubectl get nodes" command to ensure all nodes are now using containerd as the container runtime.
+
+```
+alex@masternode:~$ kubectl get nodes -o wide
+NAME          STATUS   ROLES                  AGE     VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION     CONTAINER-RUNTIME
+masternode    Ready    control-plane,master   3d17h   v1.22.4   192.168.0.10   <none>        Ubuntu 20.04.3 LTS   5.4.0-91-generic   containerd://1.5.9
+workernode1   Ready    <none>                 3d17h   v1.22.4   192.168.0.11   <none>        Ubuntu 20.04.3 LTS   5.4.0-94-generic   containerd://1.5.9
+workernode2   Ready    <none>                 67m     v1.22.4   192.168.0.13   <none>        Ubuntu 20.04.3 LTS   5.4.0-94-generic   containerd://1.5.9
+```
+
+## Conclusion
+
+As everything I've built for my blog here is based on IaC, I have also updated the [Ansible playbook](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/2-os-configuration) to install and configure containerd instead of using Docker.
+
+I hope you find this post useful and as always, please leave a comment below if you come across any issues.

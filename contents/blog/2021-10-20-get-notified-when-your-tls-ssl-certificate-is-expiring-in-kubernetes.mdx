@@ -1,0 +1,131 @@
+---
+title: "Get Notified When Your TLS/SSL Certificate is Expiring in Kubernetes"
+description: >-
+  Automated email notification when TLS certificate is expiring...
+pubDate: 2021/10/20
+category: Automation
+tags:
+  - "kubernetes"
+  - "tls"
+heroImage: "../../assets/images/TLS-Cert-Expiry-Notification.png"
+---
+
+In my [previous blog](https://lexdsolutions.com/2021/10/how-i-created-my-own-tls-certificate-renewal-bot-on-kubernetes/), I talked about how I created a bot to auto renew my TLS/SSL certificates. The bot however will only work if the certificate is provided and signed by Let's Encrypt. For other third party signed certificates that are manually imported, it will not work.
+
+Since I already have the pieces of code to check for the certificate expiry dates and all, it was easy enough for me to put together another script that can also run as a cronjob to notify me when a certificate is about to expire.
+
+The source code for this script is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/tls-cert-monitor).
+
+There is also a CI (GitLab Actions) that will automatically build and push the docker image over to [Docker Hub](https://hub.docker.com/r/88lexd/tls-cert-monitor) for me.
+
+## How it Works
+
+This section below will explain how this all works.
+### Source of Truth
+
+As I did not want to manually update any configuration files for new URL's or applications that is hosted in Kubernetes, I decided to use the Ingress Controller hosts as my source.
+
+Using the example below, the script will automatically pick up "dev.lexdsolutions.com" and will run a check against that host.
+
+```
+$ kubectl get ingress -n dev
+NAME                CLASS    HOSTS                   ADDRESS     PORTS     AGE
+wordpress-ingress   public   dev.lexdsolutions.com   127.0.0.1   80, 443   20d
+```
+
+If there are multiple hosts rules and ingresses, the script will pick them all up as well.
+
+### Docker Image
+
+The script itself is located within the docker image. This image is build automatically through CI ([GitHub Actions](https://github.com/88lexd/lexd-solutions/blob/main/.github/workflows/tls-cert-monitor.yml)) and is then pushed to [Docker Hub](https://hub.docker.com/r/88lexd/tls-cert-monitor).
+
+### Python Script
+
+This source code is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/tls-cert-monitor).
+
+In a high level, this is what happens:
+
+1. Use the Kubernetes API (thanks to RBAC roles/service accounts) to retrieve the ingress host names.
+2. Reuse the module "cert\_check.py" from my cert renewal bot to get the certificate expiry date for a given domain/host name.
+3. Build a HTML email body by using Jinja2 template
+4. Send email using smtplib
+
+### CronJob and RBAC
+
+A cronjob resource is created to trigger the script and it uses a service account which has been granted the following role in RBAC:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: rl-tls-cert-monitor
+rules:
+- apiGroups: ["extensions"]
+  verbs: ["list"]
+  resources: ["ingresses"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: [{{ .Values.smtp_details.k8s_secret_name }}]
+```
+import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
+
+In the above, we are allowing the service account to lists all ingresses and to retrieve a secret to the credentials for sending out emails via SMTP.
+
+Note: The secret is created manually by using the command as follow:
+
+```shell
+$ kubectl create secret generic cert-checker-smtp-secret --from-literal=username=myusername@somedomain.com --from-literal=password=mypassword -n dev
+```
+
+**Example: Check through CLI**
+
+Using kubectl, I can check the cronjob and the logs when the script is executed.
+
+```
+$ kubectl get cronjobs.batch -n dev
+NAME                    SCHEDULE       SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+lets-encrypt-cron       0 23 */7 * *   False     0        5d10h           13d
+tls-cert-monitor-cron   0 12 */7 * *   False     0        <none>          23s
+
+$ kubectl get jobs.batch -n dev | grep monitor
+tls-cert-monitor-cron-27246172   1/1           3m22s      26s
+
+$ kubectl get pods -n dev | grep monitor
+tls-cert-monitor-cron-27246172-dlhlg   0/1     Completed    0          32s
+
+$ kubectl logs -n dev tls-cert-monitor-cron-27246172-dlhlg
+21/10/2021 12:49:19 PM INFO main.py[56]: Checking URL [dev.lexdsolutions.com] for TLS certifcate...
+21/10/2021 12:49:19 PM INFO main.py[76]: OK: Certificate has more than 30 days before it expires. (expires on 13/1/2022 with 83 days remaining)
+21/10/2021 12:49:19 PM INFO main.py[105]: Building HTML file to be used as the email body...
+21/10/2021 12:49:19 PM INFO main.py[133]: Begin sending emails...
+21/10/2021 12:49:20 PM INFO main.py[163]: Email sent to - alex.dinh@lexdsolutions.com
+```
+
+**Example: Email Notification**
+
+The following email will be sent out every 7 days at 12pm as per the cronjob schedule.
+<ImageZoom src="/images/2021-10-21-13_11_49-TLS-Certificate-Checker-alex.dinh@lexdsolutions.com-LEXD-SOLUTIONS-Mail.png" client:load />
+
+Note: The failed check is an invalid endpoint. I've configured it on purpose to fail test the script.
+
+## Helm Chart Deployment
+This source code is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/tls-cert-monitor/tls-cert-monitor-chart).
+
+To easily deploy this, I've created a Helm Chart which will create the following resources:
+
+- **Service Account** \- The service account is then used by the cronjob so the pod that gets created will have access to list ingresses and the secret credentials for sending email via SMTP.
+- **Role/RoleBinding** - The RBAC which defines the rules in which the service account is allowed to do.
+- **Cronjob** \- The cronjob itself sets the schedule and which docker image to use along with the required environmental variables.
+- **Deployment** \- The replica is set to 0 and it is only used when I need to develop / update the script. As I am using Okteto for remote development, this requires an existing deployment kind.
+
+To deploy this, all I need is to run:
+
+```shell
+$ helm install tls-cert-monitor . -n prod
+```
+
+## Conclusion
+
+I personally do not need to use this, as my bot is doing a great job in auto renewing my Let's Encrypt certificate. This was created purely as a side project and because I already have the existing code which I can easily wrap this all together fairly quickly.

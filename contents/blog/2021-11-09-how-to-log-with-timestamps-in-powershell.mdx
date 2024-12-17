@@ -1,0 +1,126 @@
+---
+title: "How to Log with Timestamps in PowerShell"
+description: >-
+    Who doesn't like to have timestamps included their log files?
+pubDate: "2021/11/09"
+category: Tips and Tricks
+tags:
+  - "powershell"
+heroImage: "../../assets/images/PowerShell-Logging.png"
+---
+
+Who doesn't like to have timestamps included their log files?
+
+For me this is a requirement whenever I need to log. For obvious reasons, timestamp in logs will allow you to look back at what happened at a given date/time.
+
+So let's cut straight to the point, here are the 2 functions which I always include in all my scripts whenever I need logging.
+
+```powershell
+function WriteLog {
+    param ([String]$Msg)
+    $TimeStamp = Get-Date -Format "dd/MM/yy HH:mm:ss"
+    if ($Global:SaveLog) {
+        if (-not (Test-Path "$Global:LogPath")) {
+            New-Item -ItemType "directory" -Path "$Global:LogPath" -Force -Confirm:$false | Out-Null
+        }
+        $FileTimeStamp = Get-Date -Format "yyyyMMdd"
+        $LogFileWithDate = ($Global:LogFileName.Replace(".log", "_$($FileTimeStamp).log"))
+        Write-Output "[$TimeStamp] $Msg" | Out-File -FilePath "$($Global:LogPath)\$($LogFileWithDate)"  -Append
+    }
+    else {
+        Write-Host "[$TimeStamp] $Msg"
+    }
+}
+
+
+function CleanLogs {
+    $Retention = (Get-Date).AddDays(-$($Global:LogRetentionInDays))
+    Get-ChildItem -Path $Global:LogPath -Recurse -Force | Where-Object { $_.Extension -eq ".log" -and $_.CreationTime -lt $Retention } |
+        Remove-Item -Force -Confirm:$false
+}
+
+```
+To use these 2 functions, the following global variables must be defined:
+
+1. $Global:SaveLog = `$true | $false`
+2. $Global:LogPath = `[string]C:\path\to\log\dir\`
+3. $Global:LogFileName = `[string]my.log` _# must end with .log_
+4. $Global:LogRetentionInDays = `[int] number`
+
+The **WriteLog** function can either write the log to STDOUT or write to a file. This depends on the `$Global:SaveLog` variable.
+
+A separate log file is created for each day. The file will be suffixed with the current date like `mylog_yyyyMMdd.log` format.
+
+The **CleanLogs** will purge/delete log files that are older than the retention period defined in days by the variable `$Global:LogRetentionInDays`
+
+## Example 1 - Logging to File
+
+Here I will simply write out "Hello World!" to a log file.
+
+```powershell
+function WriteLog {
+    param ([String]$Msg)
+    $TimeStamp = Get-Date -Format "dd/MM/yy HH:mm:ss"
+    if ($Global:SaveLog) {
+        if (-not (Test-Path "$Global:LogPath")) {
+            New-Item -ItemType "directory" -Path "$Global:LogPath" -Force -Confirm:$false | Out-Null
+        }
+        $FileTimeStamp = Get-Date -Format "yyyyMMdd"
+        $LogFileWithDate = ($Global:LogFileName.Replace(".log", "_$($FileTimeStamp).log"))
+        Write-Output "[$TimeStamp] $Msg" | Out-File -FilePath "$($Global:LogPath)\$($LogFileWithDate)"  -Append
+    }
+    else {
+        Write-Host "[$TimeStamp] $Msg"
+    }
+}
+
+function CleanLogs {
+    $Retention = (Get-Date).AddDays(-$($Global:LogRetentionInDays))
+    Get-ChildItem -Path $Global:LogPath -Recurse -Force | Where-Object { $_.Extension -eq ".log" -and $_.CreationTime -lt $Retention } |
+        Remove-Item -Force -Confirm:$false
+}
+
+
+$Global:SaveLog = $true
+$Global:LogPath = "C:\Temp\Logs"
+$Global:LogFileName = "my.log"  # must end with .log
+$Global:LogRetentionInDays = 7
+
+WriteLog "Hello World!"
+
+
+# I always place this at the end of the script to ensure old logs are purged.
+if ($Global:SaveLog) {
+    WriteLog -Msg "Cleaning logs older than $($Global:LogRetentionInDays) days"
+    CleanLogs
+}
+```
+
+Note: $Global:LogPath doesn't need to pre-exist, the function will create directory for you if is not already there . Using the example above, the script will create the "temp" and "log" folders on the first execution.
+
+Now let's check the output after running the code above.
+
+```powershell
+PS C:\> Get-Content "C:\Temp\Logs\my_20211109.log"
+[09/11/21 21:11:43] Hello World!
+[09/11/21 21:11:43] Cleaning logs older than 7 days
+```
+
+### Example 2 - Logging to Stdout
+
+To log to Stdout, the $Global:SaveLog can be set to $false. Example:
+
+```powershell
+PS C:\temp> .\logging_sample.ps1
+[09/11/21 21:14:10] Hello World!
+```
+
+Note: When `$Global:SaveLog` is set to `$false`, the script will not attempt to delete old log files.
+
+### Conclusion
+
+I often begin writing my scripts with `$Global:SaveLog = $false`. This allows me to quickly see the script output on my IDE terminal during development.
+
+These 2 functions have been in many of my scripts over the years and I hope this can be useful for others who appreciates logging with timestamps :)
+
+If you've made it this far, then I would like to say thank you and that you can also find this code on my [GitHub page](https://github.com/88lexd/lexd-solutions/blob/main/misc-scripts/powershell-log-with-timestamp/sample-logging.ps1). I am open to all feedbacks and/or any pull requests if you think we can do better to improve on this.
