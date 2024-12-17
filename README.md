@@ -59,8 +59,7 @@ Build production and host via Nginx
 # Use the Dockerfile
 docker build -t astro .
 
-# Note: There seem to be a bug where the `about` and `tags` page is not working...
-docker run -it -p 80:80 astro
+docker run --rm -it -p 80:80 astro
 ```
 
 # Additional Changes
