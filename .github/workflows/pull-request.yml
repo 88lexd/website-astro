@@ -3,7 +3,7 @@ name: PR Workflow
 on:
   pull_request:
     branches:
-      - mainXXX
+      - main
 
 jobs:
   check-pr-title:
