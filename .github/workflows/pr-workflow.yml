@@ -32,7 +32,7 @@ jobs:
       run: docker build -t astro .
 
     - name: Run app container
-      run: docker run --rm -p 80:80 --name app astro
+      run: docker run -d --rm -p 80:80 --name app astro
 
     - name: Check application
       run: |
