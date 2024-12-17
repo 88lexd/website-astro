@@ -1,0 +1,56 @@
+name: Release Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Semantic version
+      id: sem-ver
+      uses: paulhatch/semantic-version@v5.4.0
+      with:
+        version_format: ${major}.${minor}.${patch}
+        major_pattern: "[MAJOR]"
+        minor_pattern: "[MINOR]"
+        # This is the default; it will check what's been tagged on the main branch to determine the next version
+        version_from_branch: false
+
+    - name: Debug sem-ver
+      env:
+        JSON: ${{ toJSON(steps.sem-ver.outputs) }}
+      run: echo "${JSON}"
+
+    - name: Create and push git tag
+      run: |
+        git config user.email "gh-semver@lexdsolutions.com"
+        git config user.name "GitHub Semantic Versioning"
+
+        git tag -a ${{ steps.sem-ver.outputs.version_tag }} -m "Tagged ${{ steps.sem-ver.outputs.version_tag }}"
+        git push origin ${{ steps.sem-ver.outputs.version_tag }}
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ vars.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push
+      uses: docker/build-push-action@v6
+      with:
+        push: true
+        tags: ${{ vars.DOCKERHUB_USERNAME }}/website-astro:${{ github.sha }} , ${{ vars.DOCKERHUB_USERNAME }}/website-astro:${{ steps.sem-ver.outputs.version_tag }}
