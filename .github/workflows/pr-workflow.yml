@@ -36,7 +36,8 @@ jobs:
 
     - name: Check application
       run: |
-        STATUS=$(curl -s http://localhost | jq -r '.statusText')
+        STATUS=$(curl -s http://127.0.0.1 | jq -r '.statusText')
+        echo "${STATUS}"
 
         if [[ "$STATUS" == "OK" ]]; then
           echo "Status is OK."
