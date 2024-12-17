@@ -47,7 +47,7 @@ jobs:
         STATUS=$(curl -s $ENDPOINT | jq -r '.statusText')
 
         if [[ "$STATUS" == "OK" ]]; then
-          echo -e"\nStatus is OK."
+          echo -e "\nStatus is OK"
         else
           echo -e "\nERROR: Status is not OK"
           docker logs app
