@@ -14,4 +14,9 @@ jobs:
       env:
         TITLE: ${{ github.event.pull_request.title }}
       run: |
-        echo "The Title of your PR is ${TITLE}"
+        if [[ "${TITLE}" =~ ^\[(Chore|Docs|Minor|Major)\] ]]; then
+            echo "The title of the PR is compliant"
+        else
+            echo "Non-compliant PR title! Please fix"
+            exit 1
+        fi
