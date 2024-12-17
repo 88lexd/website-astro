@@ -31,13 +31,14 @@ jobs:
     - name: Build image
       run: docker build -t astro .
 
-    - name: Run and check app container
+    - name: Run app container
+      run: docker run -d --rm -p 80:80 --name app astro
+
+    - name: Check app status
       run: |
-        docker run -d --rm -p 80:80 --name app astro
+        curl http://127.0.0.1/health-check
 
-        curl -s http://127.0.0.1
-
-        STATUS=$(curl -s http://127.0.0.1 | jq -r '.statusText')
+        STATUS=$(curl -s http://127.0.0.1/health-check | jq -r '.statusText')
 
         if [[ "$STATUS" == "OK" ]]; then
           echo "Status is OK."
