@@ -35,6 +35,11 @@ jobs:
         JSON: ${{ toJSON(steps.sem-ver.outputs) }}
       run: echo "${JSON}"
 
+    - name: Create and push git tag
+      run: |
+        git tag -a ${{ steps.sem-ver.outputs.version_tag }}
+        git push origin ${{ steps.sem-ver.outputs.version_tag }}
+
     # - name: Login to Docker Hub
     #   uses: docker/login-action@v3
     #   with:
