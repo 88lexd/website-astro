@@ -40,6 +40,8 @@ jobs:
         ENDPOINT="http://127.0.0.1/health-check"
 
         echo "Wait 5 seconds for server to be ready"
+        sleep 5
+
         curl -s $ENDPOINT
 
         STATUS=$(curl -s $ENDPOINT | jq -r '.statusText')
