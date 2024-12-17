@@ -42,7 +42,7 @@ jobs:
         git config user.email "gh-semver@lexdsolutions.com"
         git config user.name "GitHub Semantic Versioning"
 
-        git tag ${{ steps.sem-ver.outputs.version_tag }}
+        git tag -a ${{ steps.sem-ver.outputs.version_tag }} -m "Tagged ${{ steps.sem-ver.outputs.version_tag }}"
         git push origin ${{ steps.sem-ver.outputs.version_tag }}
 
     - name: Login to Docker Hub
@@ -58,6 +58,6 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         push: true
-        tags: ${{ vars.DOCKERHUB_USERNAME }}/app:${{ github.sha }} , ${{ vars.DOCKERHUB_USERNAME }}/app:${{ steps.sem-ver.outputs.version_tag }}
+        tags: ${{ vars.DOCKERHUB_USERNAME }}/website-astro:${{ github.sha }} , ${{ vars.DOCKERHUB_USERNAME }}/website-astro:${{ steps.sem-ver.outputs.version_tag }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
