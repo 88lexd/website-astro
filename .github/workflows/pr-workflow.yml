@@ -5,9 +5,9 @@ on:
     branches:
       - main
 
-
 jobs:
   check-pr-title:
+    name: Check PR Title
     runs-on: ubuntu-latest
     steps:
     - name : Title of PR
@@ -19,4 +19,29 @@ jobs:
         else
             echo "Non-compliant PR title! Please fix and push another commit"
             exit 1
+        fi
+
+  ci:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build image
+      run: docker build -t astro .
+
+    - name: Run app container
+      run: docker run --rm -p 80:80 --name app astro
+
+    - name: Check application
+      run: |
+        STATUS=$(curl -s http://localhost | jq -r '.statusText')
+
+        if [[ "$STATUS" == "OK" ]]; then
+          echo "Status is OK."
+        else
+          echo "ERROR: Status is not OK"
+          docker logs app
+          exit 1
         fi
