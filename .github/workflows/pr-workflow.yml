@@ -17,6 +17,6 @@ jobs:
         if [[ "${TITLE}" =~ ^\[(Chore|Docs|Minor|Major)\] ]]; then
             echo "The title of the PR is compliant"
         else
-            echo "Non-compliant PR title! Please fix"
+            echo "Non-compliant PR title! Please fix and push another commit"
             exit 1
         fi
