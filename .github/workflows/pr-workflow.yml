@@ -32,7 +32,10 @@ jobs:
       run: docker build -t astro .
 
     - name: Run app container
-      run: docker run -d --rm -p 80:80 --name app astro
+      run: |
+        docker run -d --rm -p 80:80 --name app astro
+        echo "Wait for server to be ready"
+        sleep 5
 
     - name: Check app status
       run: |
