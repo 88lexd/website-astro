@@ -1,0 +1,17 @@
+name: PR Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+
+jobs:
+  check-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+    - name : Title of PR
+      env:
+        TITLE: ${{ github.event.pull_request.title }}
+      run: |
+        echo "The Title of your PR is ${TITLE}"
