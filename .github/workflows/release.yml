@@ -29,6 +29,7 @@ jobs:
         version_format: ${major}.${minor}.${patch}
         major_pattern: "[MAJOR]"
         minor_pattern: "[MINOR]"
+        debug: true
 
     - name: Debug
       env:
