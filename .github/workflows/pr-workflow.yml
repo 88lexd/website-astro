@@ -15,4 +15,3 @@ jobs:
         TITLE: ${{ github.event.pull_request.title }}
       run: |
         echo "The Title of your PR is ${TITLE}"
-
