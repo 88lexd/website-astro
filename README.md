@@ -30,6 +30,10 @@ if __name__ == "__main__":
 EOF
 
 chmod u+x .git/hooks/commit-msg
+
+# Debug - At one point, I had `core.hooksPath` pointing to `.husky`
+# This should be resolved, but the following command fixed it
+git config --local core.hooksPath .git/hooks
 ```
 
 ### Local Development
