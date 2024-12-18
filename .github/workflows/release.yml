@@ -17,14 +17,14 @@ jobs:
       with:
         fetch-depth: 0
 
-    # Note: Pull Reuqest setting in GitHub must use "Allow rebase merging" only.
+    # Note: Pull Request setting in GitHub uses "Allow squash merging" with default message.
     - name: Semantic version
       id: sem-ver
       uses: paulhatch/semantic-version@v5.4.0
       with:
         version_format: ${major}.${minor}.${patch}
-        major_pattern: "[MAJOR]"
-        minor_pattern: "[MINOR]"
+        major_pattern: "[Major]"
+        minor_pattern: "[Minor]"
         # This is the default; it will check what's been tagged on the main branch to determine the next version
         version_from_branch: false
 
