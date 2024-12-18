@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+    - 'astro/**'
+    - 'contents/**'
 
 jobs:
   release:
@@ -41,20 +44,12 @@ jobs:
         git tag -a ${{ steps.sem_ver.outputs.version_tag }} -m "Tagged ${{ steps.sem_ver.outputs.version_tag }}"
         git push origin ${{ steps.sem_ver.outputs.version_tag }}
 
-    - name: Changelog
-      id: change-log
-      uses: mikepenz/release-changelog-builder-action@v5
-      with:
-        fromTag: v${{ steps.sem_ver.outputs.previous_version }}
-        toTag: ${{ steps.sem_ver.outputs.version_tag }}
-
     - name: Release
       uses: ncipollo/release-action@v1
       id: release
       with:
         tag: ${{ steps.sem_ver.outputs.version_tag }}
         name: ${{ steps.sem_ver.outputs.version_tag }}
-        body: ${{ steps.build_changelog.outputs.changelog }}
         draft: false
         prerelease: false
         commit: ${{ steps.sem_ver.outputs.current_commit }}
