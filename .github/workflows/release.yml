@@ -42,8 +42,8 @@ jobs:
 
     - name: Create and push git tag
       run: |
-        git config user.email "${{ github.event.user.login }}@github.com"
-        git config user.name "GitHub Semantic Versioning"
+        git config user.email "${{ github.actor }}@github.com"
+        git config user.name "${{ github.actor }}"
 
         git tag -a ${{ steps.sem_ver.outputs.version_tag }} -m "Tagged ${{ steps.sem_ver.outputs.version_tag }}"
         git push origin ${{ steps.sem_ver.outputs.version_tag }}
