@@ -17,9 +17,9 @@ jobs:
       with:
         fetch-depth: 0
 
-    # Note: Pull Request setting in GitHub uses "Allow squash merging" with default message.
+    # Note: Pull Request setting in GitHub uses "Allow squash merging" with default commit message as "Pull request title and commit details".
     - name: Semantic version
-      id: sem-ver
+      id: sem_ver
       uses: paulhatch/semantic-version@v5.4.0
       with:
         version_format: ${major}.${minor}.${patch}
@@ -28,18 +28,36 @@ jobs:
         # This is the default; it will check what's been tagged on the main branch to determine the next version
         version_from_branch: false
 
-    - name: Debug sem-ver
+    - name: Debug sem_ver
       env:
-        JSON: ${{ toJSON(steps.sem-ver.outputs) }}
+        JSON: ${{ toJSON(steps.sem_ver.outputs) }}
       run: echo "${JSON}"
+
+    - name: Changelog
+      id: change-log
+      uses: mikepenz/release-changelog-builder-action@v5
+      with:
+        fromTag: v${{ steps.sem_ver.outputs.previous_version }}
+        toTag: ${{ steps.sem_ver.outputs.version_tag }}
 
     - name: Create and push git tag
       run: |
-        git config user.email "gh-semver@lexdsolutions.com"
-        git config user.name "GitHub Semantic Versioning"
+        git config user.email "${{ github.actor }}@github.com"
+        git config user.name "${{ github.actor }}"
 
-        git tag -a ${{ steps.sem-ver.outputs.version_tag }} -m "Tagged ${{ steps.sem-ver.outputs.version_tag }}"
-        git push origin ${{ steps.sem-ver.outputs.version_tag }}
+        git tag -a ${{ steps.sem_ver.outputs.version_tag }} -m "Tagged ${{ steps.sem_ver.outputs.version_tag }}"
+        git push origin ${{ steps.sem_ver.outputs.version_tag }}
+
+    - name: Release
+      uses: ncipollo/release-action@v1
+      id: release
+      with:
+        tag: ${{ steps.sem_ver.outputs.version_tag }}
+        name: ${{ steps.sem_ver.outputs.version_tag }}
+        body: ${{ steps.build_changelog.outputs.changelog }}
+        draft: false
+        prerelease: false
+        commit: ${{ steps.sem_ver.outputs.current_commit }}
 
     - name: Login to Docker Hub
       uses: docker/login-action@v3
@@ -54,4 +72,4 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         push: true
-        tags: ${{ vars.DOCKERHUB_USERNAME }}/website-astro:${{ github.sha }} , ${{ vars.DOCKERHUB_USERNAME }}/website-astro:${{ steps.sem-ver.outputs.version_tag }}
+        tags: ${{ vars.DOCKERHUB_USERNAME }}/website-astro:${{ steps.sem_ver.outputs.version_tag }}
