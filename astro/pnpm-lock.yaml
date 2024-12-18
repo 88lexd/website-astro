@@ -17,7 +17,6 @@ specifiers:
   eslint: ^8.48.0
   eslint-plugin-astro: ^0.29.0
   eslint-plugin-jsx-a11y: ^6.7.1
-  husky: ^8.0.3
   lint-staged: ^14.0.1
   mdast-util-to-string: ^4.0.0
   motion: ^10.16.2
@@ -58,7 +57,6 @@ devDependencies:
   eslint: 8.57.1
   eslint-plugin-astro: 0.29.1_eslint@8.57.1
   eslint-plugin-jsx-a11y: 6.10.2_eslint@8.57.1
-  husky: 8.0.3
   lint-staged: 14.0.1
   mdast-util-to-string: 4.0.0
   motion: 10.18.0
@@ -12075,12 +12073,6 @@ packages:
   /human-signals/4.3.1:
     resolution: {integrity: sha512-nZXjEF2nbo7lIw3mgYjItAfgQXog3OjJogSbKa2CQIIvSGWcKgeJnQlNXip6NglNzYH45nSRiEVimMvYL8DDqQ==}
     engines: {node: '>=14.18.0'}
-    dev: true
-
-  /husky/8.0.3:
-    resolution: {integrity: sha512-+dQSyqPh4x1hlO1swXBiNb2HzTDN1I2IGLQx1GrBuiqFJfoMrnZWwVmatvSiO+Iz8fBUnf+lekwNo4c2LlXItg==}
-    engines: {node: '>=14'}
-    hasBin: true
     dev: true
 
   /iconv-lite/0.4.24:

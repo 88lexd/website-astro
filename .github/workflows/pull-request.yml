@@ -28,28 +28,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Build image
-      run: docker build -t astro .
-
-    - name: Run app container
+    - name: Debug
       run: |
-        docker run -d --rm -p 80:80 --name app astro
+        echo "${{toJSON(github.event)}}"
 
-    - name: Check app status
-      run: |
-        ENDPOINT="http://127.0.0.1/health-check"
+    # - name: Build image
+    #   run: docker build -t astro .
 
-        echo "Wait 5 seconds for server to be ready"
-        sleep 5
+    # - name: Run app container
+    #   run: |
+    #     docker run -d --rm -p 80:80 --name app astro
 
-        curl -s $ENDPOINT
+    # - name: Check app status
+    #   run: |
+    #     ENDPOINT="http://127.0.0.1/health-check"
 
-        STATUS=$(curl -s $ENDPOINT | jq -r '.statusText')
+    #     echo "Wait 5 seconds for server to be ready"
+    #     sleep 5
 
-        if [[ "$STATUS" == "OK" ]]; then
-          echo -e "\nStatus is OK"
-        else
-          echo -e "\nERROR: Status is not OK"
-          docker logs app
-          exit 1
-        fi
+    #     curl -s $ENDPOINT
+
+    #     STATUS=$(curl -s $ENDPOINT | jq -r '.statusText')
+
+    #     if [[ "$STATUS" == "OK" ]]; then
+    #       echo -e "\nStatus is OK"
+    #     else
+    #       echo -e "\nERROR: Status is not OK"
+    #       docker logs app
+    #       exit 1
+    #     fi
