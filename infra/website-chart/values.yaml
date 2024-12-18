@@ -1,0 +1,7 @@
+deployment:
+  image: 88lexd/website-astro
+  tag: v1.0.0
+  replicas: 1
+
+ingress:
+  host: lexdsolutions.com
