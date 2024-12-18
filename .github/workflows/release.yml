@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+    - 'astro/**'
+    - 'contents/**'
 
 jobs:
   release:
@@ -54,7 +57,6 @@ jobs:
       with:
         tag: ${{ steps.sem_ver.outputs.version_tag }}
         name: ${{ steps.sem_ver.outputs.version_tag }}
-        body: ${{ steps.build_changelog.outputs.changelog }}
         draft: false
         prerelease: false
         commit: ${{ steps.sem_ver.outputs.current_commit }}

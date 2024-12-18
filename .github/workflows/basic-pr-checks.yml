@@ -1,0 +1,22 @@
+name: Basic Checks Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-pr-title:
+    name: Check PR Title
+    runs-on: ubuntu-latest
+    steps:
+    - name : Title of PR
+      env:
+        TITLE: ${{ github.event.pull_request.title }}
+      run: |
+        if [[ "${TITLE}" =~ ^\[(Chore|Docs|Minor|Major)\] ]]; then
+            echo "The title of the PR is compliant"
+        else
+            echo "Non-compliant PR title! Please fix and push another commit"
+            exit 1
+        fi
