@@ -30,7 +30,7 @@ jobs:
 
     - name: Debug
       run: |
-        echo "${{ github.event.user.login }}"
+        echo "${{ github.actor }}"
 
     # - name: Build image
     #   run: docker build -t astro .
