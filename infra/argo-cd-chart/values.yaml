@@ -1,5 +1,7 @@
+ingress:
+  host: argo.lexdsolutions.com
+
 argo-cd:
-  namespaceOverride: argo-cd
   dex:
     enabled: false
   notifications:
