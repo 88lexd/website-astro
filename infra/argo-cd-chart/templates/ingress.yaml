@@ -1,0 +1,21 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-{{ .Release.Namespace }}-ingress
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx  # Must specify the ingress controller (no default set)
+  rules:
+  - host: {{ .Values.ingress.host }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: argo-cd-argocd-server
+            port:
+              number: 80

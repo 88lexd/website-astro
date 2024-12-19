@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: website-astro
+  namespace: argo-cd
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/88lexd/website-astro
+    targetRevision: main
+    path: infra/website-chart
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
