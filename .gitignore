@@ -22,5 +22,6 @@ pnpm-debug.log*
 node_modules
 
 # other
+.vscode
 .pnpm-store
 contents/blog_extras
