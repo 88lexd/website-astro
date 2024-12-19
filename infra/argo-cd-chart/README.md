@@ -23,7 +23,7 @@ $ helm upgrade --install argo-cd --namespace argo-cd .
 ## Install and Setup Argo CLI
 The following is required on my local machine to access Argo CD via CLI.
 ```shell
-# Install
+# Install CLI
 curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
 sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
 rm argocd-linux-amd64
@@ -65,7 +65,7 @@ I have 2 options for Argo CD
   argo --help
   ```
 
-## Custom Resource Definitions
+# Custom Resource Definitions
 The chart also install CRDs on first install, but does not handle any upgrades.
 
 Refer to the following doc for more info: https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/README.md#custom-resource-definitions
