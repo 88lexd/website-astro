@@ -17,8 +17,13 @@ $ helm dep update .
 # Install
 $ helm upgrade --install argocd --namespace argocd .
 ```
-
 **Note:** In addition to Argo CD, I am also installing an ingress resource so I can access it from the network.
+
+### Adding an Application to Argo CD
+This chart also contains the `Application` definitions for Argo Apps.
+
+When adding another app, simply run the `helm upgrade --install` again using the command above.
+
 
 ## Install and Setup Argo CLI
 The following is required on my local machine to access Argo CD via CLI.
