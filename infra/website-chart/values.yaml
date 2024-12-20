@@ -4,4 +4,4 @@ deployment:
   replicas: 1
 
 ingress:
-  host: lexdsolutions.com
+  host: dev.lexdsolutions.com
