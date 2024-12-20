@@ -14,7 +14,7 @@ jobs:
       env:
         TITLE: ${{ github.event.pull_request.title }}
       run: |
-        if [[ "${TITLE}" =~ ^\[(Chore|Docs|Minor|Major)\] ]]; then
+        if [[ "${TITLE}" =~ ^\[(Chore|Fix|Docs|Build|Minor|Major)\] ]]; then
             echo "The title of the PR is compliant"
         else
             echo "Non-compliant PR title! Please fix and push another commit"
