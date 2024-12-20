@@ -21,6 +21,7 @@ jobs:
 
     - name: Run app container
       run: |
+        echo "pr-ci" > version.txt
         docker run -d --rm -p 80:80 --name app astro
 
     - name: Check app status
