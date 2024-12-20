@@ -14,9 +14,6 @@ RUN pnpm install
 COPY astro/src /app/astro/src
 COPY astro/public /app/astro/public
 
-# This file should be created as part of the CI workflow
-COPY version.txt /app/version.txt
-
 RUN pnpm build
 
 
@@ -24,6 +21,9 @@ RUN pnpm build
 FROM nginx:alpine
 
 COPY --from=builder /app/astro/dist /usr/share/nginx/html
+
+# This file should be created as part of the CI workflow
+COPY version.txt /app/version.txt
 
 EXPOSE 80
 
