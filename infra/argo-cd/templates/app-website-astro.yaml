@@ -2,9 +2,15 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: website-astro
-  namespace: argo-cd
   annotations:
     helm.sh/hook: post-install,post-upgrade
+    #######################
+    # Argo CD Image Updater
+    # This will always use the newest tag
+    argocd-image-updater.argoproj.io/image-list: 88lexd/website-astro
+    # This will checkout the `main` branch and commit/push change into `argo-cd-image-updater` branch
+    argocd-image-updater.argoproj.io/git-branch: main:argo-cd-image-updater
+    argocd-image-updater.argoproj.io/write-back-method: git
 spec:
   project: default
   source:

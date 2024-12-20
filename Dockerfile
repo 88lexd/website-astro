@@ -14,6 +14,9 @@ RUN pnpm install
 COPY astro/src /app/astro/src
 COPY astro/public /app/astro/public
 
+# This file should be created as part of the CI workflow
+COPY version.txt /app/version.txt
+
 RUN pnpm build
 
 

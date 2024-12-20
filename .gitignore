@@ -24,4 +24,5 @@ node_modules
 # other
 .vscode
 .pnpm-store
+version.txt
 contents/blog_extras
