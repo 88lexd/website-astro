@@ -2,7 +2,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: website-astro
-  namespace: argo-cd
   annotations:
     helm.sh/hook: post-install,post-upgrade
 spec:

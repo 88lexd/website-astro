@@ -4,18 +4,18 @@ Use this to install Argo CD for automated deployments.
 ## Installing Argo CD
 Create Namespace (if I ever rebuild K8s)
 ```
-$ kubectl create ns argo-cd
+$ kubectl create ns argocd
 ```
 
 Install/Upgrade Chart
 ```shell
-$ cd ./infra/argo-cd-chart
+$ cd ./infra/argo-cd
 
 $ helm repo add argo-cd https://argoproj.github.io/argo-helm
 $ helm dep update .
 
 # Install
-$ helm upgrade --install argo-cd --namespace argo-cd .
+$ helm upgrade --install argocd --namespace argocd .
 ```
 
 **Note:** In addition to Argo CD, I am also installing an ingress resource so I can access it from the network.
@@ -29,20 +29,24 @@ sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
 rm argocd-linux-amd64
 
 # Get the initial password
-argocd admin initial-password -n argo-cd
+argocd admin initial-password -n argocd
+
+
+# Login with new password (self-signed TLS, ignore WARNING with extra flag)
+argocd login argo.lexdsolutions.com --grpc-web
+
+  # Note: A re-install of Argo caused me some issue, had to delete thils containing old data
+  rm -f ~/.config/argo/config
 
 # Login and change password
 argocd account update-password
 # >Enter current password
 # >Enter new password
-
-# Login with new password (self-signed TLS, ignore WARNING with extra flag)
-argocd login argo.lexdsolutions.com --grpc-web
 ```
 
 Delete the secret containing the initial setup password
 ```shell
-kubectl delete secrets -n argo-cd argocd-initial-admin-secret
+kubectl delete secrets -n argocd argocd-initial-admin-secret
 ```
 
 ## Add Git Repository into Argo CD
@@ -74,7 +78,10 @@ When I release a new container image, I want Argo CD to automatically get my App
 ```shell
 # As of December 2024 when installed this, v0.15.1 is the latest.
 # Reason I choose to use the version tag instead of `stable` is so I can easily uninstall using the same manifest.
-kubectl apply -n argo-cd -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/v0.15.1/manifests/install.yaml
+
+# VERY IMPORTANT: The chart references `argocd` as the namespace! I have re-deployed argo-cd to keep it the same
+# Otherwise I must manually modify the manifest before applying.
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/v0.15.1/manifests/install.yaml
 
 # Install `argocd-image-updater` binary on my machine
 wget https://github.com/argoproj-labs/argocd-image-updater/releases/download/v0.15.1/argocd-image-updater-linux_amd64
