@@ -10,11 +10,12 @@ metadata:
     argocd-image-updater.argoproj.io/image-list: 88lexd/website-astro
     # This will checkout the `main` branch and commit/push change into `argo-cd-image-updater` branch
     argocd-image-updater.argoproj.io/git-branch: main:argo-cd-image-updater
-    argocd-image-updater.argoproj.io/write-back-method: git
+    # Format is using `secret:<namespace>:<secret-name>`
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-cred-website-astro
 spec:
   project: default
   source:
-    repoURL: https://github.com/88lexd/website-astro
+    repoURL: git@github.com:88lexd/website-astro.git
     targetRevision: main
     path: infra/website-chart
   destination:

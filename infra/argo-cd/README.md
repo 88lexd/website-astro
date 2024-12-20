@@ -58,7 +58,7 @@ kubectl delete secrets -n argocd argocd-initial-admin-secret
 Add the repository into Argo CD so it can read and perform git write-back via Image Updater.
 
 ```shell
-argocd repo add git@github.com:88lexd/website-astro.git --ssh-private-key-path ~/.ssh/argo-cd
+argocd repo add git@github.com:88lexd/website-astro.git --project default --ssh-private-key-path ~/.ssh/argo-cd
 ```
 
 ## Accessing Argo CD
@@ -80,6 +80,7 @@ A tool to automatically update the container images of Kubernetes workloads that
 When I release a new container image, I want Argo CD to automatically get my Application to use the latest.
 
 ## Install
+Install Image Updater
 ```shell
 # As of December 2024 when installed this, v0.15.1 is the latest.
 # Reason I choose to use the version tag instead of `stable` is so I can easily uninstall using the same manifest.
@@ -87,7 +88,18 @@ When I release a new container image, I want Argo CD to automatically get my App
 # VERY IMPORTANT: The chart references `argocd` as the namespace! I have re-deployed argo-cd to keep it the same
 # Otherwise I must manually modify the manifest before applying.
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/v0.15.1/manifests/install.yaml
+```
 
+Setup SSH key for Argo CD Image Updater to use
+```shell
+cd ~/.ssh
+
+kubectl -n argocd create secret generic git-cred-website-astro \
+  --from-file=sshPrivateKey=argo-cd
+```
+
+Install CLI
+```shell
 # Install `argocd-image-updater` binary on my machine
 wget https://github.com/argoproj-labs/argocd-image-updater/releases/download/v0.15.1/argocd-image-updater-linux_amd64
 sudo mv argocd-image-updater-linux_amd64 /usr/local/bin/argocd-image-updater

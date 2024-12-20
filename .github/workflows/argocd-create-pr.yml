@@ -1,0 +1,23 @@
+name: Basic Checks Workflow
+
+on:
+  push:
+    branches:
+    # This branch name is created by Argo CD Image Updater by the App's annotation
+    - argo-cd-image-updater
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  createPullRequest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          title: '[Build] Update report'
