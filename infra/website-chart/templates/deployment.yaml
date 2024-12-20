@@ -18,5 +18,5 @@ spec:
         app: {{ .Release.Name }}-{{ .Release.Namespace }}
     spec:
       containers:
-      - image: {{ .Values.deployment.image }}:{{ .Values.deployment.tag }}
+      - image: {{ .Values.image.name }}:{{ .Values.image.tag }}
         name: {{ .Release.Name }}-{{ .Release.Namespace }}

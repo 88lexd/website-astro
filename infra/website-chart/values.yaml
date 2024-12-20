@@ -1,6 +1,10 @@
-deployment:
-  image: 88lexd/website-astro
+image:
+  # These should be overwritten by Argo CD and Argo CD Image Updater
+  # See: `.argocd-source-<app>.yaml` file
+  name: 88lexd/website-astro
   tag: v1.0.0
+
+deployment:
   replicas: 1
 
 ingress:
