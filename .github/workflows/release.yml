@@ -53,7 +53,7 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v6
       with:
-        context: ${{ env.GITHUB_WORKSPACE }}
+        context: .
         push: true
         tags: ${{ vars.DOCKERHUB_USERNAME }}/website-astro:${{ steps.sem_ver.outputs.version_tag }}
 
