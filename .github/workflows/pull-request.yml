@@ -17,11 +17,12 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build image
-      run: docker build -t astro .
+      run: |
+        echo "pr-ci" > version.txt
+        docker build -t astro .
 
     - name: Run app container
       run: |
-        echo "pr-ci" > version.txt
         docker run -d --rm -p 80:80 --name app astro
 
     - name: Check app status
