@@ -8,6 +8,7 @@ on:
     - .github/workflows/release.yml
     - 'astro/**'
     - 'contents/**'
+    - Dockerfile
 
 jobs:
   release:
