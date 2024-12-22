@@ -1,5 +1,5 @@
 # Website Powered by Astro
-Blog is powered on Astro and uses the [Blog Template](https://github.com/danielcgilibert/blog-template) by danielcgilibert.
+This is my [personal blog](https://lexdsolutions.com) that is powered on Astro and uses the [Blog Template](https://github.com/danielcgilibert/blog-template) by danielcgilibert.
 
 ## Dev Setup
 The following are notes for myself on how I do development work on my machine.
@@ -83,7 +83,21 @@ docker run --rm -it -p 80:80 astro
 ```
 Then access the web server the same way as above.
 
-# Additional Changes
+## Deployment Workflow
+When changes related to Astro are made and is merged into the main branch, the following happens:
+- GitHub Actions triggers the release workflow.
+	- Determines next semantic version
+	- Build and push new container image to DockerHub using the version tag
+	- Creates a release+tag on GitHub using the same version tag.
+- ArgoCD Image Updater:
+	- Detects that there is a new image
+	- Creates a branch called `argo-cd-image-updater`, drops in the [updated Argo config](https://github.com/88lexd/website-astro/blob/main/infra/website-chart/.argocd-source-website-astro.yaml) and pushes it back to GitHub
+	- GitHub Actions will pick up a push from this branch and creates a new Pull Request ([example PR](https://github.com/88lexd/website-astro/pull/26/files))
+- Upon Merge Argo CD Image Updater PR on GitHub
+	- Argo CD Application sync will pick up the change and will update the deployment/image to use the new version.
+
+
+## Additional Changes
 These changes were made on top of the base template:
 - Upgraded Astro v3 -> v4
 - Fixed sorting on landing page (prev was oldest to newest.. wrong way around)
@@ -93,7 +107,9 @@ These changes were made on top of the base template:
 - Symlinks for blog and image page to root of repo
 - Run as container with Dockerfile
 
-## Tech notes on changes
+## Other - Tech notes on changes
+These are just some random notes for now..
+
 I've updated Astro by running:
 ```
 rm -rf node_modules/
