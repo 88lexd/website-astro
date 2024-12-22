@@ -39,6 +39,7 @@ dependencies:
   '@astrojs/partytown': 2.1.2
   '@astrojs/react': 4.1.0_vr5jsoxhfdb4emdiyrrucqaac4
   '@astrojs/rss': 3.0.0
+  '@astrojs/sitemap': 3.0.0
   '@tinacms/cli': 1.7.0_vr5jsoxhfdb4emdiyrrucqaac4
   '@types/react': 19.0.1
   '@types/react-dom': 19.0.2_@types+react@19.0.1
@@ -50,7 +51,6 @@ dependencies:
 
 devDependencies:
   '@astrojs/mdx': 1.0.0_astro@4.16.17
-  '@astrojs/sitemap': 3.0.0
   '@astrojs/tailwind': 5.0.0_zhf6lo2ftf3ek57h2rxpyi752i
   '@pagefind/default-ui': 0.12.0
   '@tailwindcss/typography': 0.5.9_tailwindcss@3.3.3
@@ -315,7 +315,7 @@ packages:
     dependencies:
       sitemap: 7.1.2
       zod: 3.21.1
-    dev: true
+    dev: false
 
   /@astrojs/tailwind/5.0.0_zhf6lo2ftf3ek57h2rxpyi752i:
     resolution: {integrity: sha512-bMZZNNm/SW+ijUKMQDhdiuNWDdR3CubEKUHb2Ran4Arx1ikWn/kKIkFDXUV+MUnsLa7s19x9VMRlARRyKbqMkQ==}
@@ -5106,7 +5106,6 @@ packages:
 
   /@types/node/17.0.45:
     resolution: {integrity: sha512-w+tIMs3rq2afQdsPJlODhoUEKzFP1ayaoyl1CcnwtIlsVe7K7bA1NGm4s3PraqTLlXnbIN84zuBlxBWo1u9BLw==}
-    dev: true
 
   /@types/parse5/6.0.3:
     resolution: {integrity: sha512-SuT16Q1K51EAVPz1K29DJ/sXjhSQ0zjvsypYJ6tlwVsRV9jwW5Adq2ch8Dq8kDBCkYnELS7N7VNCSB5nC56t/g==}
@@ -5143,7 +5142,6 @@ packages:
     resolution: {integrity: sha512-rO73L89PJxeYM3s3pPPjiPgVVcymqU490g0YO5n5By0k2Erzj6tay/4lr1CHAAU4JyOWd1rpQ8bCf6cZfHU96A==}
     dependencies:
       '@types/node': 17.0.45
-    dev: true
 
   /@types/tern/0.23.9:
     resolution: {integrity: sha512-ypzHFE/wBzh+BlH6rrBgS5I/Z7RD21pGhZ2rltb/+ZrVM1awdZwjx7hE5XfuYgHWk9uvV5HLZN3SloevCAp3Bw==}
@@ -16219,7 +16217,6 @@ packages:
 
   /sax/1.4.1:
     resolution: {integrity: sha512-+aWOz7yVScEGoKNd4PA10LZ8sk0A/z5+nXQG5giUO5rprX9jgYsTdov9qCchZiPIZezbZH+jRut8nPodFAX4Jg==}
-    dev: true
 
   /scheduler/0.23.2:
     resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
@@ -16516,7 +16513,6 @@ packages:
       '@types/sax': 1.2.7
       arg: 5.0.2
       sax: 1.4.1
-    dev: true
 
   /slash/3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
@@ -18440,7 +18436,6 @@ packages:
 
   /zod/3.21.1:
     resolution: {integrity: sha512-+dTu2m6gmCbO9Ahm4ZBDapx2O6ZY9QSPXst2WXjcznPMwf2YNpn3RevLx4KkZp1OPW/ouFcoBtBzFz/LeY69oA==}
-    dev: true
 
   /zod/3.24.1:
     resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}

@@ -9,7 +9,7 @@ import partytown from '@astrojs/partytown'
 
 // https://astro.build/config
 export default defineConfig({
-    site: 'https://lexdsolutions.com/', // Write here your website url
+    site: 'https://lexdsolutions.com',
     markdown: {
         remarkPlugins: [remarkReadingTime],
         drafts: true,
