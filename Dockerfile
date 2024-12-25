@@ -21,6 +21,7 @@ RUN pnpm build
 FROM nginx:alpine
 
 COPY --from=builder /app/astro/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # This file should be created as part of the CI workflow
 COPY version.txt /app/version.txt
