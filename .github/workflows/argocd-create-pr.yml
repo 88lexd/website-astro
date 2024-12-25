@@ -20,6 +20,6 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
-          base: main
-          branch: argo-cd-image-updater
+          base: argo-cd-image-updater
+          branch: main
           title: '[Build] Argo bump image version'
