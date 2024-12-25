@@ -21,4 +21,5 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           base: main
-          title: '[Build] Update report'
+          branch: argo-cd-image-updater
+          title: '[Build] Argo bump image version'
