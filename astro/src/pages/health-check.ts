@@ -13,7 +13,7 @@ export async function GET() {
         statusText: 'OK',
         version: version.trim(), // Ensure no trailing newlines or spaces
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'text/html' } }
     );
   } catch (error) {
     // Handle errors (e.g., file not found)
@@ -26,7 +26,7 @@ export async function GET() {
         statusText: 'Internal Server Error',
         error: errorMessage,
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'text/html' } }
     );
   }
 }

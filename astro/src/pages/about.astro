@@ -1,0 +1,29 @@
+---
+import { Content, components } from '../content/pages/about.mdx'
+import Code from '@/components/mdx/Code'
+import SButton from '@/components/mdx/SButton'
+import BaseLayout from '@/layouts/BaseLayout'
+import TitlePage from '@/components/TitlePage'
+---
+
+<BaseLayout title='About Me'>
+	<TitlePage title='About Me' />
+	<div class="flex justify-center flex-wrap gap-4 w-[85%] lg:w-[65%] mx-auto">
+		<img src="/images/me-150x150.jpg" class="about-image" />
+
+    <article class='max-w-full w-full'>
+      <div class='prose prose-lg md:prose-xl dark:prose-invert mb-12 min-w-full'>
+        <Content components={{ pre: Code, SButton }} />
+      </div>
+    </article>
+
+  </div>
+</BaseLayout>
+
+<style>
+  .about-image {
+    max-width: 200px;
+    border-radius: 50%;
+    border: 4px solid #ccc;
+  }
+</style>
