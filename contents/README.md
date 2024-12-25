@@ -7,6 +7,10 @@ The actual symlink is like the following:
 $ ls -l astro/src/content/blog
 lrwxrwxrwx 1 alex alex 22 Dec 13 22:40 astro/src/content/blog -> ../../../contents/blog
 
+# Static pages
+$ ls -l astro/src/content/pages
+lrwxrwxrwx 1 alex alex 23 Dec 22 23:10 pages -> ../../../contents/pages
+
 # Images references by the blog post, cannot be accessed using public link
 $ ls -l astro/src/assets/images
 lrwxrwxrwx 1 alex alex 24 Dec 13 22:42 astro/src/assets/images -> ../../../contents/images
