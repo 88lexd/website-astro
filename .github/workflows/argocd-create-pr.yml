@@ -17,9 +17,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Create Pull Request
-        id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
-          base: argo-cd-image-updater
-          branch: main
+          base: main
+          branch: argo-cd-image-updater
           title: '[Build] Argo bump image version'
+          commit-message: [build] bump image version
