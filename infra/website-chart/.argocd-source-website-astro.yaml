@@ -4,5 +4,5 @@ helm:
     value: 88lexd/website-astro
     forcestring: true
   - name: image.tag
-    value: v1.1.3
+    value: v1.1.5
     forcestring: true
