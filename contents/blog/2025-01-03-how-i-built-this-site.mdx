@@ -1,0 +1,92 @@
+---
+title: How I Build This New Site
+description: >-
+  How I have replaced WordPress with this new site powered by Astro.
+pubDate: 2025/01/03
+heroImage: '../../assets/images/new-site-astro.jpg'
+# Categories must match in: `astro/src/data/categories.ts`
+category: Building this Blog
+tags:
+  - how-i-built-this-blog
+---
+
+## Introduction
+Previously my blog was powered by WordPress and now I have fully replaced it with a static site powered by [Astro](https://astro.build)!
+
+In this blog, I will write about my design decisions and how this new site is hosted.
+
+## Why Did I Replace WordPress?
+I have been running my blog since 2021 and at the beginning I have chosen to use WordPress as the CMS to host my blog.
+
+While WordPress for me has been running well for many years, there were also times I read about various vulnerabilities with WordPress and therefore require me to constantly patch/upgrade WordPress and it's plugins. To make matters worse, everytime I upgrade a plugin, something breaks and requires me to troubleshoot the issue and resolve it each time.
+
+In the end, I just got tired of maintaining WordPress and the backing up of the data etc...
+
+## Why SSG?
+While I was researching for an alternate solution to host my blog, I came across SSGs (Static Site Generators), this caught my attention as I  don't need any backend code as this site only hosts static pages anyway. SSGs provides me with the security and hassle free as the site requires minimimal maintenance compared to WordPress.
+
+I also really like the idea that everything the site requires can all live in Git, so I technically don't need to perform any local backups if anything breaks. I can easily get the site up and running again fairly quickly and easily.
+
+While there are many SSG solutions out there such as Hugo, 11ty etc... when I read about Astro, it is one of the most popular and the blog theme I found (which I am currently using), it looks great and I really like how I can really customize everything.
+
+## Design Decisions
+The beauty of SSG is that the site can be be freely hosted on many platforms such as Netlify, Vercel, GitHub Pages, CloudFlare and many more.. however I still chose to self host the site and here are the design decisions I had when building this:
+
+- **Hosted on Kubernetes**
+  - This site is served by Nginx. The reason I went down this path is because I already have a Kubernetes cluster running to host my previous WordPress blog.
+  - I also enjoy managing Kubernetes and my next project for the blog is to replace the cluster created by `kubeadm` that's running on Ubuntu and replace it with a Talos Linux.
+- **Argo CD & Argo CD Image Updater**
+  - I really enjoy DevOps and love applying GitOps. Through using these tools I can showcase how releases and deployment works through my own personal project and have the code made public for everyone to see.
+  - I plan on writing some future blog posts on these tools, so by having a working example it is much easier to demonstrate everything.
+- **GitHub & GitHub Actions**
+  - I already use GitHub to host my private and my previous public repo. Its a no brainer to continue using this.
+  - With Astro, I am required to `build` and `publish` my blog.. so I thought why not apply the full DevOps practice of releasing changes with versioning, testing and deployment using GitHub Actions as my CI/CD pipeline. This way I can also write future blog posts on this workflow.
+- **HTTP Redirects**
+  - A benefit of self hosting through Nginx myself is that I can ensure my most popular posts are redirected to the new URLs. This way I can ensure any previous Google search results are not broken and my site can still be reached.
+  - Through using HTTP 301 permanent redirect, eventually all results should go directly to the new URLs and these will no longer be required even if I host my blog elsewhere.
+  - The [nginx.conf](https://github.com/88lexd/website-astro/blob/main/nginx.conf) is copied into the container image during build.
+
+## Blog Template
+This new blog site will not be possible without [danielcgilibert/blog-template](https://github.com/danielcgilibert/blog-template). This Astro template really kicked off the blog by making everything super easy for me.
+
+### Additional Changes
+While the template got my off the ground very quickly, however I had to make a few customisations for my blog, here are some changes I've made that is unique to my site.
+
+- Upgraded from Astro v3 -> Astro v4
+- Fixed blog sorting (template had the oldest to newest; I think it was a bug?)
+- Added an About Me page
+- Added pagination
+- Implemented Google Analytics
+- Implemented health-check endpoint
+- Implemented symlinks so blog contents can be accessed from the repo root.
+- Run as a container
+
+## Deployment Workflow
+*Note 1: This workflow may be over engineered for a static site, but it is based on DevOps practices. This may change in the future..*
+
+*Note 2: The following is referencing the repo for this site: [website-astro](https://github.com/88lexd/website-astro)*
+
+When changes related to Astro are made in the main branch, the following happens:
+
+- GitHub Actions triggers the release workflow.
+	- Determines next semantic version
+	- Build and push new container image to DockerHub using the version tag
+	- Creates a release+tag on GitHub using the same version tag.
+- Argo CD Image Updater:
+	- Detects that there is a new image
+	- Creates a branch called `argo-cd-image-updater`, drops in the [updated Argo config](https://github.com/88lexd/website-astro/blob/main/infra/website-chart/.argocd-source-website-astro.yaml) and pushes it back to GitHub
+	- GitHub Actions will pick up a push from this branch and creates a new Pull Request ([example PR](https://github.com/88lexd/website-astro/pull/26/files))
+- Upon Merge Argo CD Image Updater PR on GitHub
+	- Argo CD Application sync will pick up the change and will update the deployment/image to use the new version.
+
+## What's Next?
+I have the following in mind for what's coming next:
+
+1. Write blogs about how I:
+    - Implemented Argo CD and Argo CD Image Updater
+    - Implemented semantic versioning in GitHub Actions
+2. Refactor and migrate the [cloudflare Terraform code](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/1-infra-configuration/3-cloudflare) into the [new repo](https://github.com/88lexd/website-astro) for this blog.
+3. Implement a GitHub Actions workfow to deploy the Terraform code for cloudflare.
+4. Setup Talos Linux and replace the current Kubernetes cluster and VMs.
+
+I really hope to get these done soon, but finding time to work on my personal project is getting harder but we'll see!
