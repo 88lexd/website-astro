@@ -22,6 +22,7 @@ pnpm-debug.log*
 node_modules
 
 # other
+__pycache__
 .vscode
 .pnpm-store
 version.txt
