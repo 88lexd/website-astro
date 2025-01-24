@@ -1,0 +1,42 @@
+name: Generate Terraform Docs
+on:
+  pull_request:
+    branches:
+    - main
+    paths:
+    - 'infra/**'
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+
+    - name: Generate a comma seperated list of paths for Terraform docs action
+      id: generate_dir_list
+      run: |
+        pwd
+        ls -l
+        python3 <<EOL >>$GITHUB_OUTPUT
+        from scripts import utils
+
+        tf_dirs = utils.find_terraform_directories()
+        print(f"dirs={','.join(tf_dirs)}")
+        EOL
+
+    - name: Debug GitHub output
+      run: echo "dirs -- ${{ steps.generate_dir_list.outputs.dirs }}"
+
+    - name: Generate Terraform docs and push changes back to PR branch
+      uses: terraform-docs/gh-actions@v1.3.0
+      with:
+        working-dir: ${{ steps.generate_dir_list.outputs.dirs }}
+        output-file: README.md
+        output-method: inject
+        git-push: "true"
