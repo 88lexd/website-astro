@@ -8,21 +8,8 @@ variable "zone_id" {
   type        = string
 }
 
-# Delete LATER
 variable "email" {
   description = "The email to send notifications"
-  type        = string
-}
-
-# DELETE LATER
-variable "hostname_fqdn" {
-  description = "The FQDN used for the tunnel"
-  type        = string
-}
-
-# DELETE LATER
-variable "hostname_dns_record" {
-  description = "The hostname used for creating the DNS record"
   type        = string
 }
 

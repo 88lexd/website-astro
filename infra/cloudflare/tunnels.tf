@@ -11,7 +11,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared" "tunnel" {
   secret     = base64encode(random_string.tunnel_secret.result)
 }
 
-resource "cloudflare_tunnel_config" "config" {
+resource "cloudflare_zero_trust_tunnel_cloudflared_config" "config" {
   for_each = {for k,v in var.tunnels : v.tunnel_name => v }
 
   account_id = var.account_id
