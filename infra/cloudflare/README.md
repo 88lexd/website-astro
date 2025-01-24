@@ -149,7 +149,7 @@ No modules.
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | The account id for Cloudflare | `string` | n/a | yes |
 | <a name="input_email"></a> [email](#input\_email) | The email to send notifications | `string` | n/a | yes |
 | <a name="input_hostname_dns_record"></a> [hostname\_dns\_record](#input\_hostname\_dns\_record) | The hostname used for creating the DNS record | `string` | n/a | yes |
-| <a name="input_hostname_fqdn"></a> [hostname\_fqdn](#input\_hostname\_fqdn) | The FQDN used for the Tunnel | `string` | n/a | yes |
+| <a name="input_hostname_fqdn"></a> [hostname\_fqdn](#input\_hostname\_fqdn) | The FQDN used for the tunnel | `string` | n/a | yes |
 | <a name="input_zone_id"></a> [zone\_id](#input\_zone\_id) | The DNS zone id for Cloudflare | `string` | n/a | yes |
 
 ## Outputs
