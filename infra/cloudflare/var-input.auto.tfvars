@@ -15,5 +15,25 @@ tunnels = [
       path     = "/"
       service  = "http://192.168.0.23"
     }
+  },
+  {
+    tunnel_name     = "lexd-solutions"
+    zone_id         = "5cf4cd965a07d20a7a74a14565a2037b"
+    dns_record_name = "@"
+    ingress_rule = {
+      hostname = "lexdsolutions.com"
+      path     = "/"
+      service  = "http://192.168.0.23"
+    }
+  },
+  {
+    tunnel_name     = "henry-todo-app"
+    zone_id         = "ef52cbbc77074d3566c6687589e98de9"
+    dns_record_name = "todo"
+    ingress_rule = {
+      hostname = "todo.henrydinh.net"
+      path     = "/"
+      service  = "http://192.168.0.23"
+    }
   }
 ]

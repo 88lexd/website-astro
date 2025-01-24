@@ -10,6 +10,6 @@ resource "cloudflare_notification_policy" "tunnel_health" {
   }
 
   filters {
-    tunnel_id = [cloudflare_tunnel.lexd_solutions.id]
+    tunnel_id = [cloudflare_zero_trust_tunnel_cloudflared.tunnel["lexd-solutions"].id]
   }
 }

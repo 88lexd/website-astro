@@ -1,3 +1,8 @@
+resource "random_string" "tunnel_secret" {
+  length  = 32
+  special = true
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared" "tunnel" {
   for_each = {for k,v in var.tunnels : v.tunnel_name => v }
 
