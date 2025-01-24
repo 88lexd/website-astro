@@ -25,7 +25,7 @@ jobs:
         EOL
 
     - name: Debug GitHub output
-      shell: echo "dirs -- ${{ steps.generate_dir_list.outputs.dirs }}"
+      run: echo "dirs -- ${{ steps.generate_dir_list.outputs.dirs }}"
     # - name: Render terraform docs and push changes back to PR branch
     #   uses: terraform-docs/gh-actions@v1.0.0
     #   with:
