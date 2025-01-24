@@ -4,7 +4,7 @@ resource "random_string" "tunnel_secret" {
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared" "tunnel" {
-  for_each = {for k,v in var.tunnels : v.tunnel_name => v }
+  for_each = { for k, v in var.tunnels : v.tunnel_name => v }
 
   account_id = var.account_id
   name       = each.value.tunnel_name
@@ -12,7 +12,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared" "tunnel" {
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "config" {
-  for_each = {for k,v in var.tunnels : v.tunnel_name => v }
+  for_each = { for k, v in var.tunnels : v.tunnel_name => v }
 
   account_id = var.account_id
   tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.tunnel[each.value.tunnel_name].id
@@ -31,7 +31,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "config" {
 }
 
 resource "cloudflare_record" "record" {
-  for_each = {for k,v in var.tunnels : v.tunnel_name => v }
+  for_each = { for k, v in var.tunnels : v.tunnel_name => v }
 
   zone_id = each.value.zone_id
   name    = each.value.dns_record_name
