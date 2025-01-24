@@ -123,16 +123,24 @@ No modules.
 | Name | Type |
 |------|------|
 | [cloudflare_notification_policy.tunnel_health](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/notification_policy) | resource |
+| [cloudflare_record.astro_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/record) | resource |
+| [cloudflare_record.henry_todo_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/record) | resource |
 | [cloudflare_record.lexd_solutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/record) | resource |
 | [cloudflare_ruleset.cache](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/ruleset) | resource |
 | [cloudflare_ruleset.waf](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/ruleset) | resource |
 | [cloudflare_ruleset.www](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/ruleset) | resource |
 | [cloudflare_tiered_cache.tier](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tiered_cache) | resource |
+| [cloudflare_tunnel.astro_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel) | resource |
+| [cloudflare_tunnel.henry_todo_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel) | resource |
 | [cloudflare_tunnel.lexd_solutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel) | resource |
+| [cloudflare_tunnel_config.astro_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel_config) | resource |
+| [cloudflare_tunnel_config.henry_todo_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel_config) | resource |
 | [cloudflare_tunnel_config.lexd_solutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel_config) | resource |
 | [cloudflare_zone.lexdsolutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zone) | resource |
 | [cloudflare_zone_settings_override.lexdsolutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zone_settings_override) | resource |
 | [random_string.tunnel_secret](https://registry.terraform.io/providers/hashicorp/random/3.6.0/docs/resources/string) | resource |
+| [random_string.tunnel_secret_astro_app](https://registry.terraform.io/providers/hashicorp/random/3.6.0/docs/resources/string) | resource |
+| [random_string.tunnel_secret_henry_todo_app](https://registry.terraform.io/providers/hashicorp/random/3.6.0/docs/resources/string) | resource |
 
 ## Inputs
 
