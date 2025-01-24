@@ -1,3 +1,4 @@
-output "tunnel_secret_value" {
-  value = random_string.tunnel_secret.result
+output "tunnel_names" {
+  description = "The names of the tunnels"
+  value = [for k,v in cloudflare_zero_trust_tunnel_cloudflared.tunnel : v.name]
 }

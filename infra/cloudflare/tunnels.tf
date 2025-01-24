@@ -1,23 +1,22 @@
-resource "random_string" "tunnel_secret" {
-  length  = 32
-  special = true
-}
+resource "cloudflare_zero_trust_tunnel_cloudflared" "tunnel" {
+  for_each = {for k,v in var.tunnels : v.tunnel_name => v }
 
-resource "cloudflare_tunnel" "lexd_solutions" {
   account_id = var.account_id
-  name       = "lexd-solutions"
+  name       = each.value.tunnel_name
   secret     = base64encode(random_string.tunnel_secret.result)
 }
 
-resource "cloudflare_tunnel_config" "lexd_solutions" {
+resource "cloudflare_tunnel_config" "config" {
+  for_each = {for k,v in var.tunnels : v.tunnel_name => v }
+
   account_id = var.account_id
-  tunnel_id  = cloudflare_tunnel.lexd_solutions.id
+  tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.tunnel[each.value.tunnel_name].id
 
   config {
     ingress_rule {
-      hostname = var.hostname_fqdn
-      path     = "/"
-      service  = "http://192.168.0.23"
+      hostname = each.value.ingress_rule.hostname
+      path     = each.value.ingress_rule.path
+      service  = each.value.ingress_rule.service
     }
 
     ingress_rule {
@@ -26,10 +25,12 @@ resource "cloudflare_tunnel_config" "lexd_solutions" {
   }
 }
 
-resource "cloudflare_record" "lexd_solutions" {
-  zone_id = var.zone_id
-  name    = var.hostname_dns_record
-  value   = "${cloudflare_tunnel.lexd_solutions.id}.cfargotunnel.com"
+resource "cloudflare_record" "record" {
+  for_each = {for k,v in var.tunnels : v.tunnel_name => v }
+
+  zone_id = each.value.zone_id
+  name    = each.value.dns_record_name
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.tunnel[each.value.tunnel_name].id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
 }

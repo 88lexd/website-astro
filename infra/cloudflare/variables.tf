@@ -8,17 +8,37 @@ variable "zone_id" {
   type        = string
 }
 
+# Delete LATER
 variable "email" {
   description = "The email to send notifications"
   type        = string
 }
 
+# DELETE LATER
 variable "hostname_fqdn" {
   description = "The FQDN used for the tunnel"
   type        = string
 }
 
+# DELETE LATER
 variable "hostname_dns_record" {
   description = "The hostname used for creating the DNS record"
   type        = string
+}
+
+variable "tunnels" {
+  description = <<EOF
+A list of tunnel to be created.
+Changing tunnel_name will DESTROY and re-create resources
+EOF
+  type = list(object({
+    tunnel_name     = string # DO NOT CHANGE; Otherwise TF will destroy and recreate!
+    zone_id         = string
+    dns_record_name = string
+    ingress_rule = object({
+      hostname = string
+      path     = string
+      service  = string
+    })
+  }))
 }

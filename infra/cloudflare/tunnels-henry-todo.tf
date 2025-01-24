@@ -1,8 +1,8 @@
 # This specific configuration is to setup the tunnel for Henry's todo app
 locals {
   henry_todo = {
-    zone_id = "ef52cbbc77074d3566c6687589e98de9"
-    hostname_fqdn = "todo.henrydinh.net"
+    zone_id             = "ef52cbbc77074d3566c6687589e98de9"
+    hostname_fqdn       = "todo.henrydinh.net"
     hostname_dns_record = "todo"
   }
 }
@@ -38,7 +38,7 @@ resource "cloudflare_tunnel_config" "henry_todo_app" {
 resource "cloudflare_record" "henry_todo_app" {
   zone_id = local.henry_todo.zone_id
   name    = local.henry_todo.hostname_dns_record
-  value   = "${cloudflare_tunnel.henry_todo_app.id}.cfargotunnel.com"
+  content   = "${cloudflare_tunnel.henry_todo_app.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
 }
