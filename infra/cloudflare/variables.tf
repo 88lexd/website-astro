@@ -14,7 +14,7 @@ variable "email" {
 }
 
 variable "hostname_fqdn" {
-  description = "The FQDN used for the Tunnel"
+  description = "The FQDN used for the tunnel"
   type        = string
 }
 
