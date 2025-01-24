@@ -1,6 +1,8 @@
 name: Generate Terraform Docs
 on:
-  - pull_request
+  pull_request:
+    branches:
+    - main
     paths:
     - 'infra/**'
 
