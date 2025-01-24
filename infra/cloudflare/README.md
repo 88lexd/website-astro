@@ -104,14 +104,14 @@ Terraform is used to setup the tunnel and once it is setup:
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_cloudflare"></a> [cloudflare](#requirement\_cloudflare) | ~> 4.25.0 |
+| <a name="requirement_cloudflare"></a> [cloudflare](#requirement\_cloudflare) | ~> 4.51 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | 3.6.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_cloudflare"></a> [cloudflare](#provider\_cloudflare) | ~> 4.25.0 |
+| <a name="provider_cloudflare"></a> [cloudflare](#provider\_cloudflare) | ~> 4.51 |
 | <a name="provider_random"></a> [random](#provider\_random) | 3.6.0 |
 
 ## Modules
@@ -123,23 +123,22 @@ No modules.
 | Name | Type |
 |------|------|
 | [cloudflare_notification_policy.tunnel_health](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/notification_policy) | resource |
-| [cloudflare_record.astro_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/record) | resource |
 | [cloudflare_record.henry_todo_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/record) | resource |
 | [cloudflare_record.lexd_solutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/record) | resource |
+| [cloudflare_record.record](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/record) | resource |
 | [cloudflare_ruleset.cache](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/ruleset) | resource |
 | [cloudflare_ruleset.waf](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/ruleset) | resource |
 | [cloudflare_ruleset.www](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/ruleset) | resource |
 | [cloudflare_tiered_cache.tier](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tiered_cache) | resource |
-| [cloudflare_tunnel.astro_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel) | resource |
 | [cloudflare_tunnel.henry_todo_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel) | resource |
 | [cloudflare_tunnel.lexd_solutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel) | resource |
-| [cloudflare_tunnel_config.astro_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel_config) | resource |
+| [cloudflare_tunnel_config.config](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel_config) | resource |
 | [cloudflare_tunnel_config.henry_todo_app](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel_config) | resource |
 | [cloudflare_tunnel_config.lexd_solutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel_config) | resource |
+| [cloudflare_zero_trust_tunnel_cloudflared.tunnel](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zero_trust_tunnel_cloudflared) | resource |
 | [cloudflare_zone.lexdsolutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zone) | resource |
 | [cloudflare_zone_settings_override.lexdsolutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zone_settings_override) | resource |
 | [random_string.tunnel_secret](https://registry.terraform.io/providers/hashicorp/random/3.6.0/docs/resources/string) | resource |
-| [random_string.tunnel_secret_astro_app](https://registry.terraform.io/providers/hashicorp/random/3.6.0/docs/resources/string) | resource |
 | [random_string.tunnel_secret_henry_todo_app](https://registry.terraform.io/providers/hashicorp/random/3.6.0/docs/resources/string) | resource |
 
 ## Inputs
@@ -150,11 +149,12 @@ No modules.
 | <a name="input_email"></a> [email](#input\_email) | The email to send notifications | `string` | n/a | yes |
 | <a name="input_hostname_dns_record"></a> [hostname\_dns\_record](#input\_hostname\_dns\_record) | The hostname used for creating the DNS record | `string` | n/a | yes |
 | <a name="input_hostname_fqdn"></a> [hostname\_fqdn](#input\_hostname\_fqdn) | The FQDN used for the tunnel | `string` | n/a | yes |
+| <a name="input_tunnels"></a> [tunnels](#input\_tunnels) | A list of tunnel to be created.<br/>Changing tunnel\_name will DESTROY and re-create resources | <pre>list(object({<br/>    tunnel_name     = string # DO NOT CHANGE; Otherwise TF will destroy and recreate!<br/>    zone_id         = string<br/>    dns_record_name = string<br/>    ingress_rule = object({<br/>      hostname = string<br/>      path     = string<br/>      service  = string<br/>    })<br/>  }))</pre> | n/a | yes |
 | <a name="input_zone_id"></a> [zone\_id](#input\_zone\_id) | The DNS zone id for Cloudflare | `string` | n/a | yes |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_tunnel_secret_value"></a> [tunnel\_secret\_value](#output\_tunnel\_secret\_value) | n/a |
+| <a name="output_tunnel_names"></a> [tunnel\_names](#output\_tunnel\_names) | The names of the tunnels |
 <!-- END_TF_DOCS -->
