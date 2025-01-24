@@ -11,9 +11,9 @@ resource "cloudflare_ruleset" "cache" {
 
   rules {
     action      = "set_cache_settings"
-    description = "cache wp-content"
+    description = "cache rule"
     enabled     = true
-    expression  = "(starts_with(http.request.uri.path, \"/wp-content\"))"
+    expression  = "(starts_with(http.request.uri.path, \"/_astro\")) or (starts_with(http.request.uri.path, \"/images\"))"
     action_parameters {
       cache = true
       edge_ttl {
