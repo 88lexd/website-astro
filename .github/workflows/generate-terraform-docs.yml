@@ -1,4 +1,4 @@
-name: Generate terraform docs on PR
+name: Generate Terraform Docs
 on:
   - pull_request
 
@@ -23,6 +23,9 @@ jobs:
         tf_dirs = utils.find_terraform_directories()
         print(f"dirs={','.join(tf_dirs)}")
         EOL
+
+    - name: Debug GitHub output
+      shell: echo "dirs -- ${{ steps.generate_dir_list.outputs.dirs }}"
     # - name: Render terraform docs and push changes back to PR branch
     #   uses: terraform-docs/gh-actions@v1.0.0
     #   with:
