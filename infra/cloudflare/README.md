@@ -128,8 +128,8 @@ No modules.
 | [cloudflare_ruleset.waf](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/ruleset) | resource |
 | [cloudflare_ruleset.www](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/ruleset) | resource |
 | [cloudflare_tiered_cache.tier](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tiered_cache) | resource |
-| [cloudflare_tunnel_config.config](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/tunnel_config) | resource |
 | [cloudflare_zero_trust_tunnel_cloudflared.tunnel](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zero_trust_tunnel_cloudflared) | resource |
+| [cloudflare_zero_trust_tunnel_cloudflared_config.config](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zero_trust_tunnel_cloudflared_config) | resource |
 | [cloudflare_zone.lexdsolutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zone) | resource |
 | [cloudflare_zone_settings_override.lexdsolutions](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zone_settings_override) | resource |
 | [random_string.tunnel_secret](https://registry.terraform.io/providers/hashicorp/random/3.6.0/docs/resources/string) | resource |
@@ -140,8 +140,6 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | The account id for Cloudflare | `string` | n/a | yes |
 | <a name="input_email"></a> [email](#input\_email) | The email to send notifications | `string` | n/a | yes |
-| <a name="input_hostname_dns_record"></a> [hostname\_dns\_record](#input\_hostname\_dns\_record) | The hostname used for creating the DNS record | `string` | n/a | yes |
-| <a name="input_hostname_fqdn"></a> [hostname\_fqdn](#input\_hostname\_fqdn) | The FQDN used for the tunnel | `string` | n/a | yes |
 | <a name="input_tunnels"></a> [tunnels](#input\_tunnels) | A list of tunnel to be created.<br/>Changing tunnel\_name will DESTROY and re-create resources | <pre>list(object({<br/>    tunnel_name     = string # DO NOT CHANGE; Otherwise TF will destroy and recreate!<br/>    zone_id         = string<br/>    dns_record_name = string<br/>    ingress_rule = object({<br/>      hostname = string<br/>      path     = string<br/>      service  = string<br/>    })<br/>  }))</pre> | n/a | yes |
 | <a name="input_zone_id"></a> [zone\_id](#input\_zone\_id) | The DNS zone id for Cloudflare | `string` | n/a | yes |
 
