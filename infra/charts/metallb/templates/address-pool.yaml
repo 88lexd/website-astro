@@ -1,0 +1,14 @@
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: {{ .Values.ipPoolName }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+spec:
+  addresses:
+  {{- range .Values.ipRanges }}
+    - {{ . | indent 4 }}
+  {{- end }}
