@@ -9,4 +9,4 @@ metadata:
     "helm.sh/hook-weight": "1"
 spec:
   ipAddressPools:
-  - default-pool
+  - {{ .Values.ipPoolName }}
