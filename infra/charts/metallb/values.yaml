@@ -1,0 +1,11 @@
+# Chart dependency. Must use this value/name
+# To check what values can be overwritten run:
+# $ helm repo add metallb https://metallb.github.io/metallb
+# $ helm repo update
+# $ helm show values metallb/metallb --version 0.14.9
+metallb:
+  # These are already the default, specifying it here anyway just to demo the configuration
+  controller:
+    logLevel: info # Must be one of: `all`, `debug`, `info`, `warn`, `error` or `none`
+  speaker:
+    logLevel: info # Must be one of: `all`, `debug`, `info`, `warn`, `error` or `none`

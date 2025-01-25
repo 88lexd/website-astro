@@ -1,0 +1,15 @@
+apiVersion: v2
+name: metallb
+version: 0.1
+description: MetalLB Chart
+home: https://lexdsolutions.com
+maintainers:
+- name: Alex Dinh
+  email: alex.dinh@lexdsolutions.com
+dependencies:
+- name: metallb
+  # Check versions by:
+  # $ helm repo add metallb https://metallb.github.io/metallb
+  # $ helm repo update && helm search repo metallb --versions
+  version: "0.14.9"
+  repository: "https://metallb.github.io/metallb"

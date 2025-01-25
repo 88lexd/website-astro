@@ -1,0 +1,14 @@
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+spec:
+   addresses:
+   # Only the nginx ingress controller needs and ext IP
+   # This should more than enough
+   - 192.168.0.40-192.168.0.49
