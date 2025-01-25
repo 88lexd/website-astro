@@ -12,7 +12,7 @@ import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
 
 I have completed this piece of work about 3 months ago, but I didn't have the time to write a blog about it. So here it is, lets hope I can remember what I have done :)
 
-First thing first, as always, the code is available on my [GitHub repo](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/3-app-configuration/prometheus-grafana-helm) if you want to jump straight there.
+First thing first, as always, the code is available on my [GitHub repo](https://github.com/88lexd/website-astro/tree/main/infra/charts/logging-and-monitoring) if you want to jump straight there.
 
 **Disclaimer:** This is not production ready as I have not included any configurations for large scale deployments, however this works well for any personal projects you may have or want to learn and test out these products on how it works.
 
@@ -45,7 +45,7 @@ Here is an example of my Grafana Dashboard to show the health of my cluster.
 
 ## My Prometheus and Grafana Chart
 
-There really isn't much besides wrapping all the manifests provided by devopscube.com. However there were some configurable items which I think should be made as variables, so I have added them into my [values.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/values.yaml) and then updated the template manifests to reference them as variables.
+There really isn't much besides wrapping all the manifests provided by devopscube.com. However there were some configurable items which I think should be made as variables, so I have added them into my [values.yaml](https://github.com/88lexd/website-astro/tree/main/infra/charts/logging-and-monitoring/values.yaml) and then updated the template manifests to reference them as variables.
 
 The namespace called "logging" is created by my Ansible playbook which provisioned by cluster, so please make sure if you are deploying this chart, you have pre-created the namespace.
 
@@ -81,7 +81,7 @@ helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 ```
 
-Deploying Loki using [values-grafana-loki.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/values-grafana-loki.yaml)
+Deploying Loki using [values-grafana-loki.yaml](https://github.com/88lexd/website-astro/tree/main/infra/charts/logging-and-monitoring/values-grafana-loki.yaml)
 
 ```shell
 # Tip: Run `helm show values grafana/loki` to determine all available values configurable for the chart.
@@ -95,7 +95,7 @@ helm upgrade loki \
  grafana/loki
 ```
 
-Deploying Promtail using [values-promtail.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/values-promtail.yaml)
+Deploying Promtail using [values-promtail.yaml](https://github.com/88lexd/website-astro/tree/main/infra/charts/logging-and-monitoring/values-promtail.yaml)
 
 ```shell
 # Tip: Run `helm show values grafana/promtail` to determine all available values configurable for the chart.
@@ -110,7 +110,7 @@ helm upgrade promtail \
 
 ## Configuring Grafana Data Sources
 
-When Grafana starts up, it uses a predefined configuration so it knows how to read data from Prometheus and Loki. This is configured under [grafana-config.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/templates/grafana-config.yaml)
+When Grafana starts up, it uses a predefined configuration so it knows how to read data from Prometheus and Loki. This is configured under [grafana-config.yaml](https://github.com/88lexd/website-astro/tree/main/infra/charts/logging-and-monitoring/templates/grafana-config.yaml)
 
 For example:
 
@@ -147,7 +147,7 @@ data:
     }
 ```
 
-The [grafana-deployment.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/templates/grafana-deployment.yaml) references the ConfigMap above so it knows how to read the data sources accordingly.
+The [grafana-deployment.yaml](https://github.com/88lexd/website-astro/tree/main/infra/charts/logging-and-monitoring/templates/grafana-deployment.yaml) references the ConfigMap above so it knows how to read the data sources accordingly.
 
 ## SMTP for Alerting
 
@@ -157,7 +157,7 @@ Also if newer versions are released, this file may change and it could potential
 
 To work with custom configuration, I have used environment variables. See: [https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/)
 
-In the [./templates/grafana-deployment.yaml](https://github.com/88lexd/lexd-solutions/blob/main/wordpress/3-app-configuration/prometheus-grafana-helm/templates/grafana-deployment.yaml), I am configuring the SMTP settings and the credentials are taken from Kubernetes as secrets.
+In the [./templates/grafana-deployment.yaml](https://github.com/88lexd/website-astro/tree/main/infra/charts/logging-and-monitoring/templates/grafana-deployment.yaml), I am configuring the SMTP settings and the credentials are taken from Kubernetes as secrets.
 
 The secrets are manually created on the cluster for security reasons. The following is executed to create the secrets:
 
