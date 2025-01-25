@@ -17,7 +17,7 @@ spec:
   source:
     repoURL: git@github.com:88lexd/website-astro.git
     targetRevision: main
-    path: infra/website-chart
+    path: infra/charts/website-astro
   destination:
     server: https://kubernetes.default.svc
     namespace: prod
