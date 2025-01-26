@@ -45,31 +45,31 @@ resource "cloudflare_ruleset" "waf" {
   #   enabled     = true
   # }
 
-  # rules {
-  #   description = "Allow Countries"
-  #   expression  = "(ip.geoip.country eq \"AU\" and cf.threat_score le 10)"
-  #   action      = "skip"
-  #   action_parameters {
-  #     ruleset = "current"
-  #   }
-  #   logging {
-  #     enabled = true
-  #   }
-  #   enabled = true
-  # }
+  rules {
+    description = "Allow Countries"
+    expression  = "(ip.geoip.country eq \"AU\" and cf.threat_score le 10)"
+    action      = "skip"
+    action_parameters {
+      ruleset = "current"
+    }
+    logging {
+      enabled = true
+    }
+    enabled = true
+  }
 
-  # rules {
-  #   description = "Allowed User Agents and ASN"
-  #   expression  = "(http.user_agent contains \"LinkedInBot/1.0\") or (ip.geoip.asnum eq 8075) or (ip.geoip.asnum eq 14413)"
-  #   action      = "skip"
-  #   action_parameters {
-  #     ruleset = "current"
-  #   }
-  #   logging {
-  #     enabled = true
-  #   }
-  #   enabled = true
-  # }
+  rules {
+    description = "Allowed User Agents and ASN"
+    expression  = "(http.user_agent contains \"LinkedInBot/1.0\") or (ip.geoip.asnum eq 8075) or (ip.geoip.asnum eq 14413)"
+    action      = "skip"
+    action_parameters {
+      ruleset = "current"
+    }
+    logging {
+      enabled = true
+    }
+    enabled = true
+  }
 
   rules {
     description = "None Bot Challenge"
