@@ -44,7 +44,7 @@ In a high level, this is what happens:
 
     3. Lambda tags the EBS volume by using the instance tags. If EBS contains the same key tag as the instance, then it will be overwritten by the instance tag value.
 
-You can find the source code here on my [GitHub repository](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/3-app-configuration/lambda-auto-tag-ebs-volumes).
+You can find the source code here on my [GitHub repository](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/lambda-auto-tag-ebs-volumes).
 
 ## See this in action
 
@@ -115,7 +115,7 @@ $ aws ec2 describe-volumes --volume-ids vol-09cfbf053f18d11e4 | jq '.Volumes[].T
 
 Ensure CloudTrail logging is enabled on your AWS account
 
-Clone my [GitHub repository](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lambda-auto-tag-ebs-volumes)
+Clone my [GitHub repository](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/lambda-auto-tag-ebs-volumes)
 
 Modify the _main.tf and values.tf_ to match the configuration of your AWS environment.
 

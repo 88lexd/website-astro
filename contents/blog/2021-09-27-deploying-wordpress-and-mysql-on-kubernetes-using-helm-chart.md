@@ -39,7 +39,7 @@ https://lexdsolutions.com/2021/10/how-i-created-my-own-tls-certificate-renewal-b
 
 Each of the Kubernetes manifests used in this chart is be explained below.
 
-This section references the Helm chart my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/3-app-configuration/wordpress-helm).
+This section references the Helm chart my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/wordpress-helm).
 
 **Minimum Requirements**
 
@@ -56,9 +56,9 @@ Before digging into the code, it is good to know that the following is the minim
 
 This section references the 2 following files:
 
-- [deployment-wordpress.yaml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/3-app-configuration/wordpress-helm/templates/deployment-wordpress.yaml)
+- [deployment-wordpress.yaml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/3-app-configuration/wordpress-helm/templates/deployment-wordpress.yaml)
 
-- [deployment-mysql.yaml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/3-app-configuration/wordpress-helm/templates/deployment-mysql.yaml)
+- [deployment-mysql.yaml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/3-app-configuration/wordpress-helm/templates/deployment-mysql.yaml)
 
 These 2 templates will deploy 3 different resources each and these are:
 
@@ -109,7 +109,7 @@ Without using Kubernetes service, we must locate each pod and forward traffic di
 
 The service knows which pods to use is thanks to the "selector" configuration. The pods that are created through the deployment contains the same labels and therefore it knows to use those pods for this service.
 
-**Ingress Controller** ([ingress.yaml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/3-app-configuration/wordpress-helm/templates/ingress.yaml))
+**Ingress Controller** ([ingress.yaml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/3-app-configuration/wordpress-helm/templates/ingress.yaml))
 
 **_Kind: Ingress_**
 

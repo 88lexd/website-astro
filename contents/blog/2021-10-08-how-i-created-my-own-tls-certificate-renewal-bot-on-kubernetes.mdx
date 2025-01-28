@@ -28,7 +28,7 @@ From building this project, I got to deep dive into learning the following:
 - Building Docker images
 - Using GitHub Actions to automate build and push image over to Docker Hub
 
-The source code for my bot can be found on my [GitHub repository](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lets-encrypt-cron-img).
+The source code for my bot can be found on my [GitHub repository](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/lets-encrypt-cron-img).
 
 ## Kubernetes RBAC
 
@@ -69,8 +69,8 @@ $ cat /var/snap/microk8s/2546/args/kube-apiserver | grep authorization
 
 I am using my existing Helm Chart to create these resources and the 2 template files are:
 
-- [service-account.yaml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/3-app-configuration/wordpress-helm/templates/service-account.yaml)
-- [role-rolebinding.yaml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/3-app-configuration/wordpress-helm/templates/role-rolebinding.yaml)
+- [service-account.yaml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/3-app-configuration/wordpress-helm/templates_not_used/service-account.yaml)
+- [role-rolebinding.yaml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/3-app-configuration/wordpress-helm/templates_not_used/role-rolebinding.yaml)
 
 **Service Account**
 
@@ -127,7 +127,7 @@ Role binding is very simple, it binds an existing role to one or many subjects. 
 
 As I have built my own bot, I also needed to create my own docker image so Kubernetes is able to use it to spin up a pod/container.
 
-The source code for this is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lets-encrypt-cron-img).
+The source code for this is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/lets-encrypt-cron-img).
 
 **Remote Development with Okteto**
 
@@ -137,7 +137,7 @@ The saviour came when I learnt about [Okteto](https://okteto.com/)! this allowed
 
 It also provides a constant file synchronisation between my local machine with the remote pod and it also enabled me to use the VS Code's native debugger. If you code in Python for a container to run inside Kubernetes, I highly suggest you to take a look at their blog [here](https://okteto.com/blog/how-to-develop-python-apps-in-kubernetes/).
 
-I have also documented how I configured and use Okteto on [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lets-encrypt-cron-img).
+I have also documented how I configured and use Okteto on [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/lets-encrypt-cron-img).
 
 ## GitHub Actions (CI/CD)
 
@@ -147,7 +147,7 @@ The GitHub Action is configured so it will only run when there are changes made 
 
 By doing so, I will not be triggering unnecessary actions when unrelated code in the repository is changed.
 
-The GitHub Action is defined as a YAML, to see what it does you can see it [here](https://github.com/88lexd/lexd-solutions/blob/main/.github/workflows/lets-encrypt-cron-img.yml).
+The GitHub Action is defined as a YAML, to see what it does you can see it [here](https://github.com/88lexd/lexd-solutions/blob/main/.github/workflows/lets-encrypt-cron-img.yml.disabled).
 
 ## Let's Encrypt
 
@@ -161,7 +161,7 @@ There are many existing scripts out there that can help with this ACME challenge
 
 Secrets are used to store the private keys for the account and to sign the CSR.
 
-I did not want to create the secrets by hand, so these are created by Ansible that handles the OS configuration. It uses Ansible vault to encrypt the data. You can see it [here](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/main.yml) and look for line _file: vars/lets-encrypt.yml_
+I did not want to create the secrets by hand, so these are created by Ansible that handles the OS configuration. It uses Ansible vault to encrypt the data. You can see it [here](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/main.yml) and look for line _file: vars/lets-encrypt.yml_
 
 **ACME Challenge**
 
@@ -171,7 +171,7 @@ To prove that I own the domain name (lexdsolutions.com), I have to host some fil
 
 The CronJob resource is like a crontab in Linux. Use this to schedule jobs.
 
-This resource is created as part of my Helm Chart and you can see the template file [here](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/3-app-configuration/wordpress-helm/templates/lets-encrypt-cronjob.yaml).
+This resource is created as part of my Helm Chart and you can see the template file [here](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/3-app-configuration/wordpress-helm/templates_not_used/lets-encrypt-cronjob.yaml).
 
 When Kubernetes trigger this cronjob, it will spin up a container to run the code defined in the image. I also pass in additional environmental variables so when running from different namespaces, it will be able to handle that. Such as different ingress URL's and names of the secrets.
 

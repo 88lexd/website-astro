@@ -14,7 +14,7 @@ In my [previous blog](https://lexdsolutions.com/2021/10/how-i-created-my-own-tls
 
 Since I already have the pieces of code to check for the certificate expiry dates and all, it was easy enough for me to put together another script that can also run as a cronjob to notify me when a certificate is about to expire.
 
-The source code for this script is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/tls-cert-monitor).
+The source code for this script is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/tls-cert-monitor).
 
 There is also a CI (GitLab Actions) that will automatically build and push the docker image over to [Docker Hub](https://hub.docker.com/r/88lexd/tls-cert-monitor) for me.
 
@@ -37,11 +37,11 @@ If there are multiple hosts rules and ingresses, the script will pick them all u
 
 ### Docker Image
 
-The script itself is located within the docker image. This image is build automatically through CI ([GitHub Actions](https://github.com/88lexd/lexd-solutions/blob/main/.github/workflows/tls-cert-monitor.yml)) and is then pushed to [Docker Hub](https://hub.docker.com/r/88lexd/tls-cert-monitor).
+The script itself is located within the docker image. This image is build automatically through CI ([GitHub Actions](https://github.com/88lexd/lexd-solutions/blob/main/.github/workflows/tls-cert-monitor.yml.disabled)) and is then pushed to [Docker Hub](https://hub.docker.com/r/88lexd/tls-cert-monitor).
 
 ### Python Script
 
-This source code is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/tls-cert-monitor).
+This source code is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/tls-cert-monitor).
 
 In a high level, this is what happens:
 
@@ -111,7 +111,7 @@ The following email will be sent out every 7 days at 12pm as per the cronjob sch
 Note: The failed check is an invalid endpoint. I've configured it on purpose to fail test the script.
 
 ## Helm Chart Deployment
-This source code is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/tls-cert-monitor/tls-cert-monitor-chart).
+This source code is located on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/tls-cert-monitor/tls-cert-monitor-chart).
 
 To easily deploy this, I've created a Helm Chart which will create the following resources:
 

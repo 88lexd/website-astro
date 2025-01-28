@@ -42,7 +42,7 @@ From here onwards I will explain each piece and how they function.
 To see the full source code, you can visit our public GitHub repositories
 
 - WebApp - [https://github.com/HenryDinh86/my-todo-app](https://github.com/HenryDinh86/my-todo-app)
-- Automation on AWS end - [https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/1-infra-configuration/2-general-setup](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/1-infra-configuration/2-general-setup)
+- Automation on AWS end - [https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old)
 
 **GitHub Actions**
 
@@ -147,7 +147,7 @@ resource "aws_s3_bucket_notification" "codedeploy_s3_notification" {
 
 A Python based Lambda function is created directly by using the "data.archive\_file" function in Terraform. This way I do not need to first upload the source code onto S3 before deploying my function.
 
-Important note: _The following is only a snippet of how the Lambda is created. To see all the code, check out my [lambda\_codedeploy.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/lambda_codedeploy.tf) file._
+Important note: _The following is only a snippet of how the Lambda is created. To see all the code, check out my [lambda\_codedeploy.tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/lambda_codedeploy.tf) file._
 
 ```hcl
 resource "aws_lambda_function" "codedeploy_lambda" {
@@ -216,7 +216,7 @@ def handler(event, context):
 ... <truncated
 ```
 
-For the full source code, see [codedeploy\_lambda.py](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/lambdas/codedeploy_lambda.py).
+For the full source code, see [codedeploy\_lambda.py](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/lambdas/codedeploy_lambda.py).
 
 **CodeDeploy**
 
@@ -269,7 +269,7 @@ resource "aws_codedeploy_deployment_group" "henry_todo_deploy_group" {
 
 CodeDeploy agent is required to be installed on the Kubernetes master server where the deployment group is targeting via the "ec2\_tag\_filter". The agent is installed as part of my OS configuration via Ansible.
 
-See: [setup-aws-codedeploy-agent.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-aws-codedeploy-agent.yml)
+See: [setup-aws-codedeploy-agent.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/setup-aws-codedeploy-agent.yml)
 
 **appspec.yml**
 
