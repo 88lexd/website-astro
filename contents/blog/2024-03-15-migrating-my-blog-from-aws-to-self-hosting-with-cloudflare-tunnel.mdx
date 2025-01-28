@@ -65,7 +65,7 @@ resource "cloudflare_record" "lexd_solutions" {
 }
 ```
 
-_To see the full source code, you can find it at my [GitHub repo](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/1-infra-configuration/3-cloudflare)._
+_To see the full source code, you can find it at my [GitHub repo](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/1-infra-configuration/3-cloudflare)._
 
 Once the tunnel is setup, I just had to log into Cloudflare web console, look for the tunnel to get the token and run the _cloudflared_ service like the following:
 
@@ -79,7 +79,7 @@ The best thing about using Infrastructure as Code (IaC), I was able to quickly s
 
 This however had some caveats. As I haven't need to run my Ansible playbook for a few years, a lot has changed and the previous Kubernetes v1.23 is no longer supported. On top of that, the previous Kubernetes repository URL got deprecated and was changed (see [announcement](https://kubernetes.io/blog/2023/08/15/pkgs-k8s-io-introduction/)), so most of the cluster configuration failed for me on first run.
 
-I've spend a few hours over 2 nights to fix the Ansible playbook and I can now fully deploy Kubernetes v1.29. You can see the updated playbook in my [GitHub repo](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/2-os-configuration).
+I've spend a few hours over 2 nights to fix the Ansible playbook and I can now fully deploy Kubernetes v1.29. You can see the updated playbook in my [GitHub repo](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/2-os-configuration).
 
 ## Migrating WordPress and MySQL
 
@@ -89,7 +89,7 @@ To migrate the service all I had to do was:
 
 1. Standup the Kubernetes Infrastructure on my local network.
 
-3. Deploy [my Helm Chart](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/3-app-configuration/wordpress-helm) containing Wordpress and MySQL service locally (scaled down to 0).
+3. Deploy [my Helm Chart](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/wordpress-helm) containing Wordpress and MySQL service locally (scaled down to 0).
 
 5. Scale down the deployments on the AWS cluster.
 

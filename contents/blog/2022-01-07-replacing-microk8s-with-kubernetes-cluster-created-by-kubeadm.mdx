@@ -35,11 +35,11 @@ In this new design, I now have the following:
 
 ## Creating the Infrastructure Resources through Terraform
 
-As I already have my existing Terraform code to create the VPC etc. I only needed to create a sub-module to provision these new additional resources. The source code for Terraform can be found here on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/1-infra-configuration/2-general-setup). If you want to know more about my existing Terraform code, see my [previous post](https://lexdsolutions.com/2021/09/using-cloudformation-and-terraform-on-my-brand-new-aws-account/).
+As I already have my existing Terraform code to create the VPC etc. I only needed to create a sub-module to provision these new additional resources. The source code for Terraform can be found here on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old). If you want to know more about my existing Terraform code, see my [previous post](https://lexdsolutions.com/post/2021-09-21-using-cloudformation-and-terraform-on-my-brand-new-aws-account/).
 
 The new Terraform module will provision and configure the following additional resources on AWS:
 
-**EC2 Instances** ([ec2.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/ec2.tf))
+**EC2 Instances** ([ec2.tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/kubeadm_cluster/ec2.tf))
 
 Uses the "ec2\_instance" module in a "for\_each" loop to provision 2x EC2 instances based on what is configured in the locals value.
 
@@ -93,21 +93,21 @@ module "ec2_instance" {
 }
 ```
 
-**Security Groups (**[security-groups-tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/security-groups.tf))
+**Security Groups (**[security-groups-tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/kubeadm_cluster/security-groups.tf))
 
 There is a circular dependency between the K8s Master and the K8s Worker security groups. If I am to create the rules within the "aws\_security\_group" module, Terraform will throw the "cycle" error.
 
 To workaround this, the security groups must be created first and then have the rules defined later by using the "aws\_security\_group\_rule" resource.
 
-**EC2 IAM Role** ([ec2-iam-role.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/ec2-iam-role.tf))
+**EC2 IAM Role** ([ec2-iam-role.tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/kubeadm_cluster/ec2-iam-role.tf))
 
 This creates the IAM role which allows the EC2 instance to perform certain actions on AWS. I’ve created this so that the instance is able to use the [CloudWatch agent](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html) and push custom metrics onto CloudWatch (in particularly, the "disk\_free" metric).
 
-**EFS (Elastic File System)** ([efs.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/efs.tf))
+**EFS (Elastic File System)** ([efs.tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/kubeadm_cluster/efs.tf))
 
 Creates a single AZ EFS in ap-southeast-2 to save cost and also creates the EFS target so the worker node can mount this file system via NFS.
 
-**Terraform Variables** ([variables.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm_cluster/variables.tf))
+**Terraform Variables** ([variables.tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/kubeadm_cluster/variables.tf))
 
 Is always a good practice to use variables and everything within this module references the variables as defined here. This works by having the parent module pass in additional variables such as the AWS region, VPC id and subnets etc.
 
@@ -137,7 +137,7 @@ variable "vpc_public_subnets" {
 }
 ```
 
-When the parent module ([kubeadm-cluster.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/kubeadm-cluster.tf)) is triggered, it will pass in these additional values.
+When the parent module ([kubeadm-cluster.tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/kubeadm-cluster.tf)) is triggered, it will pass in these additional values.
 
 Example:
 
@@ -154,22 +154,22 @@ module "kubeadm_cluster" {
 
 ## Configuring the OS using Ansible
 
-Same as my previous setup. Everything within the OS is configured through Ansible. The source code can be found on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/2-os-configuration).
+Same as my previous setup. Everything within the OS is configured through Ansible. The source code can be found on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/2-os-configuration).
 
 The Ansible playbook will configure the following:
 
-- Apply base OS configuration with my personal settings on all nodes ([base-config.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/base-config.yml))
-- Install and Setup CloudWatch agent on all nodes ([setup-aws-cw-agent.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-aws-cw-agent.yml))
-- Install and configure containerd as container runtime on all nodes ([setup-containerd.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-containerd.yml))
-- Prepare nodes for Kubernetes install (e.g. disabling swap, configuring br\_netfilter etc.) ([setup-k8s-nodes.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-k8s-nodes.yml))
-- Install Kubernetes packages on all nodes (e.g. kubeadm, kubectl, kubelet) ([setup-k8s-nodes.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-k8s-nodes.yml))
-- Create Kubernetes cluster by using kubeadm ([k8s-master.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/k8s-master.yml))
-- Join worker node to cluster ([k8s-join-nodes-to-cluster.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/k8s-join-nodes-to-cluster.yml))
-- Apply cluster config such as deploying existing secrets and creating namespaces ([k8s-cluster-configs.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/k8s-cluster-configs.yml))
-- Install and setup Nginx Ingress Controller ([setup-nginx-ingress-controller.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-nginx-ingress-controller.yml))
-- Install and setup NFS-Subdir External Provisioner ([setup-nfs-subdir-provisioner.yml](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/ansible_tasks/setup-nfs-subdir-provisioner.yml))
+- Apply base OS configuration with my personal settings on all nodes ([base-config.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/base-config.yml))
+- Install and Setup CloudWatch agent on all nodes ([setup-aws-cw-agent.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/setup-aws-cw-agent.yml))
+- Install and configure containerd as container runtime on all nodes ([setup-containerd.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/setup-containerd.yml))
+- Prepare nodes for Kubernetes install (e.g. disabling swap, configuring br\_netfilter etc.) ([setup-k8s-nodes.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/setup-k8s-nodes.yml))
+- Install Kubernetes packages on all nodes (e.g. kubeadm, kubectl, kubelet) ([setup-k8s-nodes.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/setup-k8s-nodes.yml))
+- Create Kubernetes cluster by using kubeadm ([k8s-master.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/k8s-master.yml))
+- Join worker node to cluster ([k8s-join-nodes-to-cluster.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/k8s-join-nodes-to-cluster.yml))
+- Apply cluster config such as deploying existing secrets and creating namespaces ([k8s-cluster-configs.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/k8s-cluster-configs.yml))
+- Install and setup Nginx Ingress Controller ([setup-nginx-ingress-controller.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/setup-nginx-ingress-controller.yml))
+- Install and setup NFS-Subdir External Provisioner ([setup-nfs-subdir-provisioner.yml](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/ansible_tasks/setup-nfs-subdir-provisioner.yml))
 
-**Ansible Inventory** ([inventory\_aws.ini](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/2-os-configuration/inventory_aws.ini))
+**Ansible Inventory** ([inventory\_aws.ini](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/2-os-configuration/inventory_aws.ini))
 
 This inventory file is passed into the ansible-playbook command. This contains the additional variables for Ansible so it knows which server is the master/worker and where the EFS target endpoint is during configuration.
 

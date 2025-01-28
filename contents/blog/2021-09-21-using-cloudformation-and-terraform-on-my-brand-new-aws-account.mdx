@@ -36,7 +36,7 @@ I will eventually use Terraform to provision the remaining infrastructure and th
 
 ## AWS CloudFormation
 
-This section references the source code here on my **[GitHub page.](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/1-infra-configuration/1-base-setup-cfn)**
+This section references the source code here on my **[GitHub page.](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/1-infra-configuration/1-base-setup-cfn)**
 
 CloudFormation is a service that AWS offers. The infrastructure as code is defined in either a YAML or a JSON document.
 
@@ -78,7 +78,7 @@ This is the DynamoDB table which Terraform will later use to store the lock stat
 
 ## Terraform
 
-This section references the source code here on my [**GitHub page**](https://github.com/88lexd/lexd-solutions/tree/main/wordpress/1-infra-configuration/2-general-setup-aws-old).
+This section references the source code here on my [**GitHub page**](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old).
 
 Terraform do a very similar thing as CloudFormation and the infrastructure as code is defined by using HCL (HashiCorp Configuration Language). The beauty of Terraform is the way you can use existing modules from the [Terraform Registry](https://registry.terraform.io/). In short, these are pre-existing code and configuration which can be imported and reused. As people say, why would you want to re-invent the wheel?
 
@@ -94,7 +94,7 @@ The design right now may be simple but it can easily be expandable thanks to AWS
 
 More on the design decisions will be covered when I write about how the OS and MicroK8s is setup.
 
-**Using S3 and DynamoDB as the Backend** ([main.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/main.tf))
+**Using S3 and DynamoDB as the Backend** ([terraform.tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/terraform.tf))
 
 As mentioned in the first section above, Terraform is best to use with S3 and DynamoDB. To configure this is very simple. All needed to be done is set the following in the "main.tf" file.
 
@@ -117,7 +117,7 @@ terraform {
 }
 ```
 
-**VPC (Virtual Private Cloud)** ([vpc.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/vpc.tf))
+**VPC (Virtual Private Cloud)** ([vpc.tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/vpc.tf))
 
 This is the very first building block on any AWS setup. Thanks to AWS modules I can easily define and create the following resources with just a few lines of code:
 
@@ -139,7 +139,7 @@ Update as of Jan 2022: The initial EC2 instance, IAM role and security group was
 
 See my blog post here for more details: [Replacing MicroK8s with Kubernetes Cluster Created by kubeadm](https://lexdsolutions.com/2022/01/replacing-microk8s-with-kubernetes-cluster-created-by-kubeadm/).
 
-**Data Lifecycle Manager** ([dlm.tf](https://github.com/88lexd/lexd-solutions/blob/main/aws-wordpress/1-infra-configuration/2-general-setup/dlm.tf))
+**Data Lifecycle Manager** ([dlm.tf](https://github.com/88lexd/lexd-solutions/blob/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old/dlm.tf))
 
 Data Lifecycle Manager provides automated EBS snapshots and the life cycle management of those snapshots (snapshot retention). Prior to 2018 (when DLM was made available), we had write our own code in AWS Lambda which calls on the AWS API and scheduled it via CloudWatch. We also had to manually set our own tags and code to manage the snapshot retention.
 
@@ -149,8 +149,8 @@ Now thanks to Terraform and DLM, configuring automated EBS snapshots now is very
 
 This concludes the first part to my "how I built this blog" series. I do want to apologise for not being able to dig deeper into each topic as they can get quite long. However, if you would like me to talk deeper into a certain topic, feel free to leave a comment or contact me using this [link](https://lexdsolutions.com/contact/) and let me know.
 
-For second part of this series, I will be talking about how I configured the OS (Ubuntu 20.04) using Ansible. If you would like to look ahead, the code can be found here on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/2-os-configuration).
+For second part of this series, I will be talking about how I configured the OS (Ubuntu 20.04) using Ansible. If you would like to look ahead, the code can be found here on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/2-os-configuration).
 
 I hope you enjoyed this post I look forward to writing part two of this series.
 
-Next: Part 2 – [Ansible to Setup MicroK8s and a NFS Server on Ubuntu 20.04](https://lexdsolutions.com/2021/09/setting-up-microk8s-and-a-nfs-server-using-ansible/)
+Next: Part 2 – [Ansible to Setup MicroK8s and a NFS Server on Ubuntu 20.04](https://lexdsolutions.com/post/2021-09-24-setting-up-microk8s-and-a-nfs-server-using-ansible/)
