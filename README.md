@@ -44,18 +44,13 @@ Start Container
 # If required (in WSL)
 sudo service docker start
 
-# IMPORTANT: Change into the ROOT of this repo!
 cd ~/code/git/website-astro
 
-docker run --rm -v $(pwd):/app -p 80:4321 -it --entrypoint=bash node:18
-```
+# This will create start a container as an interactive shell. If I close it, it will stop the app
+make dev
 
-Inside the interactive shell of the container
-```shell
-cd /app/astro
-
-npm install -g pnpm@latest-7
-pnpm install && pnpm dev
+# To debug the container, use:
+make dev-shell
 ```
 
 Access web server
