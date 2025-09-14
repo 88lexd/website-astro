@@ -1,7 +1,8 @@
 # If required to overwrite values: `$ helm show values grafana/promtail`
 ---
 lexd:
-  drop_namespace_regex: ^(grafana-loki|kube-flannel|kube-node-lease|kube-public|monitoring)$
+  # To reduce CPU consumption, I only want to monitor a very small subnet of namespaces I care about
+  drop_namespace_regex: ^(grafana-loki|kube-flannel|kube-node-lease|kube-public|monitoring|ingress|argocd|local-path-storage|metallb-system)$
 
 daemonset:
   enabled: true
