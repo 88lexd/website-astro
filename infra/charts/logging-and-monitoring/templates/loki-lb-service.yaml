@@ -1,0 +1,20 @@
+# Exposes Loki with LoadBalancer Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-lb
+  namespace: {{ .Values.loki.custom_lb_service.namespace }}
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http-metrics
+    port: 3100
+    protocol: TCP
+    targetPort: http-metrics
+  - name: grpc
+    port: 9095
+    protocol: TCP
+    targetPort: grpc
+  selector:
+    {{- toYaml .Values.loki.custom_lb_service.selector | nindent 4 }}

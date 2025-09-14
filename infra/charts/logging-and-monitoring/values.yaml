@@ -30,3 +30,11 @@ loki:
   # This endpoint is created by the Helm chart in the `grafana-loki` namespace.
   # Refer to README.md
   url_endpoint: http://loki-gateway.grafana-loki.svc.cluster.local
+  # Custom LoadBalancer Service to expose Loki to external network (Metal LB required)
+  custom_lb_service:
+    namespace: grafana-loki # This is where Loki is installed
+    # These values are copied from existing ClusterIP service (kubectl get svc -n grafana-loki loki)
+    selector:
+      app.kubernetes.io/component: single-binary
+      app.kubernetes.io/instance: loki
+      app.kubernetes.io/name: loki
