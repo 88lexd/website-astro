@@ -56,15 +56,16 @@ rm argocd-linux-amd64
 # Get the initial password
 argocd admin initial-password -n argocd
 
-#########################################
-# Prior to Ingress - Using port forward
-kubectl port-forward -n argocd services/argocd-server 8080:80
-argocd login argo.lexdsolutions.com
+################################################
+# Prior to Ingress - Using port forward to login
+$ argocd login localhost:8080 --port-forward --port-forward-namespace argocd --plaintext
+Username: admin
+Password: '<enter-password-from-above>'
 
+# TOOD: Update DNS record once is fronted by Ingress
 # Login with new password (self-signed TLS, ignore WARNING with extra flag)
+argocd login argo.some.domain --grpc-web
 
-
-argocd login argo.lexdsolutions.com --grpc-web
 #########################################
   # Note: A re-install of Argo caused me some issue, had to delete thils containing old data
   rm -f ~/.config/argo/config
@@ -79,6 +80,13 @@ Delete the secret containing the initial setup password
 ```shell
 kubectl delete secrets -n argocd argocd-initial-admin-secret
 ```
+
+Access Argo from Host via Port Forwarding in WSL
+```shell
+# WSL must listen to all address so the host can access the forwarded port
+$ kubectl port-forward --address 0.0.0.0 -n argocd services/argocd-server 8080:80
+```
+Check the `eth0` IP on WSL and use that on the host browser
 
 ## Add Git Repository into Argo CD
 Add the repository into Argo CD so it can read and perform git write-back via Image Updater.
