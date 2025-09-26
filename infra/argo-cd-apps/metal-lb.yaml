@@ -1,12 +1,8 @@
-# Self Managed Argo
-# Note: To test this on a branch, the following was ran and `targetRevision` is set to the current branch before running
-# $ argocd app create argocd --file app-argocd.yaml --port-forward --port-forward-namespace argocd
-# Once merged the following command is used to update the application to repoint to
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argocd
+  name: metal-lb
   namespace: argocd
   annotations:
     helm.sh/hook: post-install,post-upgrade
@@ -14,7 +10,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/88lexd/website-astro
-    path: infra/argo-cd
+    path: infra/argo-cd-apps/metal-lb
     targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc

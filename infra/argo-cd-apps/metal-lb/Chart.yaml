@@ -11,5 +11,5 @@ dependencies:
   # Check versions by:
   # $ helm repo add metallb https://metallb.github.io/metallb
   # $ helm repo update && helm search repo metallb --versions
-  version: "0.14.9"
+  version: "0.15.2"
   repository: "https://metallb.github.io/metallb"
