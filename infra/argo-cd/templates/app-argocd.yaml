@@ -1,12 +1,15 @@
 # Self Managed Argo
 # Note: To test this on a branch, the following was ran and `targetRevision` is set to the current branch before running
-# argocd app create argocd --file templates/app-argocd.yaml --port-forward --port-forward-namespace argocd
+# $ argocd app create argocd --file templates/app-argocd.yaml --port-forward --port-forward-namespace argocd
+# Once merged the following command is used to update the application to repoint to
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: argocd
   namespace: argocd
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
 spec:
   project: default
   source:
