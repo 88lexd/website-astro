@@ -71,7 +71,7 @@ argocd login argo.some.domain --grpc-web
   rm -f ~/.config/argo/config
 
 # Login and change password
-argocd account update-password
+argocd account update-password --port-forward --port-forward-namespace argocd
 # >Enter current password
 # >Enter new password
 ```
