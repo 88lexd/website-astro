@@ -2,28 +2,47 @@
 Use this to install Argo CD for automated deployments.
 
 ## Installing Argo CD
-Create Namespace (if I ever rebuild K8s)
-```
-$ kubectl create ns argocd
+Create namespace
+```shell
+kubectl create namespace argocd
 ```
 
-Install/Upgrade Chart
+Setup secret for email notification
 ```shell
-$ cd ./infra/charts/argo-cd
+EMAIL_USER=xxx@smtp-brevo.com
+PASSWORD=password
+
+# This secret is being referenced by Argo for sending email notification
+kubectl apply -n argocd -f - << EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-notifications-secret
+stringData:
+  email-username: $EMAIL_USER
+  email-password: $PASSWORD
+type: Opaque
+EOF
+```
+
+Initial install
+```shell
+$ cd ./infra/argo-cd
 
 $ helm repo add argo-cd https://argoproj.github.io/argo-helm
 $ helm repo update
 $ helm dep update .
 
-# Install
-$ helm upgrade --install argocd --namespace argocd .
+$ helm upgrade --install argocd --namespace argocd --create-namespace .
 ```
 **Note:** In addition to Argo CD, I am also installing an ingress resource so I can access it from the network.
 
-### Adding an Application to Argo CD
+### Applications into Argo CD
 This chart also contains the `Application` definitions for Argo Apps.
 
-When adding another app, simply run the `helm upgrade --install` again using the command above.
+Argo will monitor this directory on the `main` branch and will self manage itself. This includes the following:
+- Changes to `Chart.yaml` where Argo is installed, if changed then Argo CD will perform a self upgrade
+- Changes to `templates` directory, Argo will auto install any changes
 
 
 ## Install and Setup Argo CLI
@@ -37,10 +56,17 @@ rm argocd-linux-amd64
 # Get the initial password
 argocd admin initial-password -n argocd
 
+################################################
+# Prior to Ingress - Using port forward to login
+$ argocd login localhost:8080 --port-forward --port-forward-namespace argocd --plaintext
+Username: admin
+Password: '<enter-password-from-above>'
 
+# TOOD: Update DNS record once is fronted by Ingress
 # Login with new password (self-signed TLS, ignore WARNING with extra flag)
-argocd login argo.lexdsolutions.com --grpc-web
+argocd login argo.some.domain --grpc-web
 
+#########################################
   # Note: A re-install of Argo caused me some issue, had to delete thils containing old data
   rm -f ~/.config/argo/config
 
@@ -53,6 +79,11 @@ argocd account update-password
 Delete the secret containing the initial setup password
 ```shell
 kubectl delete secrets -n argocd argocd-initial-admin-secret
+```
+
+Access Argo from Host via Port Forwarding in WSL
+```shell
+make port-forward-argo
 ```
 
 ## Add Git Repository into Argo CD
@@ -117,6 +148,6 @@ INFO[0002] latest image according to constraint is 88lexd/website-astro:v1.0.0  
 ```
 
 # Custom Resource Definitions
-The chart also install CRDs on first install, but does not handle any upgrades.
+The chart also install CRDs on first install, but does not handle any upgrades (only applies to chart versions prior to 5.2.0, CRDs are now part of the templates directory in the chart).
 
 Refer to the following doc for more info: https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/README.md#custom-resource-definitions
