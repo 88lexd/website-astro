@@ -83,10 +83,8 @@ kubectl delete secrets -n argocd argocd-initial-admin-secret
 
 Access Argo from Host via Port Forwarding in WSL
 ```shell
-# WSL must listen to all address so the host can access the forwarded port
-$ kubectl port-forward --address 0.0.0.0 -n argocd services/argocd-server 8080:80
+make port-forward-argo
 ```
-Check the `eth0` IP on WSL and use that on the host browser
 
 ## Add Git Repository into Argo CD
 Add the repository into Argo CD so it can read and perform git write-back via Image Updater.
