@@ -1,12 +1,9 @@
 # Provides the app of apps pattern for Argo
-# Note: To test this on a branch, the following was ran and `targetRevision` is set to the current branch before running
-# $ argocd app create apps --file apps.yaml --port-forward --port-forward-namespace argocd
-# Once merged the following command is used to update the application to repoint to
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: apps
+  name: app-of-apps
   namespace: argocd
   annotations:
     helm.sh/hook: post-install,post-upgrade
@@ -15,12 +12,10 @@ spec:
   source:
     repoURL: https://github.com/88lexd/website-astro
     path: infra/argo-cd-apps
-    targetRevision: metal-lb-app
+    targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
   syncPolicy:
-    syncOptions:
-      - CreateNamespace=true
     automated:
       selfHeal: true
