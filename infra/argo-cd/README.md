@@ -75,3 +75,8 @@ kubectl apply-f app-argocd.yaml
 ```
 
 To manage Argo CD, simply update the `app-argocd.yaml` Application to define the new chart version and/or update the `argocd-values.yaml` with new configurations.
+
+## Delete Helm Secret
+Argo does not do a Helm release deployment. It performs `helm template` and manages the manifests directly.
+
+Once confirm Argo sync is working, delete the Helm secret that controls the Helm release and prevent accidental management using Helm directly from local.
