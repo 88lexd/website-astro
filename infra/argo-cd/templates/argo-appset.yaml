@@ -1,0 +1,45 @@
+# Self Managed Argo
+# Note: To test this on a branch, the following was ran and `targetRevision` is set to the current branch before running
+# $ argocd app create argocd --file app-argocd.yaml --port-forward --port-forward-namespace argocd
+# Once merged the following command is used to update the application to repoint to
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argo-appset
+  namespace: argocd
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - list:
+      elements:
+      # Self managed argo
+      - appName: argocd
+        repoURL: https://github.com/88lexd/website-astro
+        repoPath: infra/argo-cd
+        targetRevision: HEAD
+      # App of Apps
+      - appName: apps
+        repoURL: https://github.com/88lexd/website-astro
+        repoPath: infra/argo-cd-apps
+        targetRevision: HEAD
+  template:
+    metadata:
+      name: '{{.appName}}'
+    spec:
+      project: default
+      source:
+        repoURL: '{{.repoURL}}'
+        path: '{{.repoPath}}'
+        targetRevision: '{{.targetRevision}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+        automated:
+          selfHeal: true
