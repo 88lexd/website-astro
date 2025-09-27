@@ -14,13 +14,13 @@ spec:
         targetRevision: metal-lb-app
   template:
     metadata:
-      name: {{.appName}}
+      name: '{{.appName}}'
     spec:
       project: default
       source:
         repoURL: https://github.com/88lexd/website-astro
-        path: {{.repoPath}}
-        targetRevision: {{.targetRevision}}
+        path: '{{.repoPath}}'
+        targetRevision: '{{.targetRevision}}'
       destination:
         server: https://kubernetes.default.svc
         namespace: argocd
