@@ -6,8 +6,6 @@ kind: Application
 metadata:
   name: argocd
   namespace: argocd
-  annotations:
-    helm.sh/hook: post-install,post-upgrade
 spec:
   project: default
   sources:

@@ -1,0 +1,21 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metal-lb
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  source:
+    repoURL: https://github.com/88lexd/website-astro
+    targetRevision: HEAD
+    path: infra/charts/metal-lb
+    helm:
+      releaseName: metallb
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: metallb-system
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

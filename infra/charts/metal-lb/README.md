@@ -16,9 +16,15 @@ helm dependency update .
 # It may fail even with the hooks in place for the manifests in `./templates`
 helm upgrade --install metallb \
   --namespace metallb-system \
+  --create-namespace \
   --dependency-update \
   .
 ```
+
+## Argo Managed
+Thanks to Argo CD being able to continue using Helm, we can first install this manually and allow continuos GitOps via Argo.
+
+See `argo-cd-apps` directory for more info.
 
 ## Validation
 Check the resources provisioned.
