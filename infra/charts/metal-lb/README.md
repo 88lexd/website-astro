@@ -22,9 +22,15 @@ helm upgrade --install metallb \
 ```
 
 ## Argo Managed
-Thanks to Argo CD being able to continue using Helm, we can first install this manually and allow continuos GitOps via Argo.
+Thanks to Argo CD, this is first install this manually and is continuosly managed by GitOps via Argo.
 
 See `argo-cd-apps` directory for more info.
+
+## Delete Helm Secret
+Argo does not do a Helm release deployment. It performs `helm template` and manages the manifests directly.
+
+Once confirm Argo sync is working, delete the Helm secret that controls the Helm release and prevent accidental management using Helm directly from local.
+
 
 ## Validation
 Check the resources provisioned.
