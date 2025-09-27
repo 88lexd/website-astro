@@ -7,6 +7,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
+  project: default
   source:
     repoURL: https://github.com/88lexd/website-astro
     targetRevision: HEAD
