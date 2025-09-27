@@ -58,7 +58,7 @@ argocd admin initial-password -n argocd
 
 ################################################
 # Prior to Ingress - Using port forward to login
-$ argocd login localhost:8080 --port-forward --port-forward-namespace argocd --plaintext
+$ argocd login --port-forward --port-forward-namespace argocd --plaintext
 Username: admin
 Password: '<enter-password-from-above>'
 
