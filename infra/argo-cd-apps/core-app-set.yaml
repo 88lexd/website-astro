@@ -9,7 +9,7 @@ spec:
   generators:
   - list:
       elements:
-      - appName: engineering-dev
+      - appName: metal-lb
         repoPath: infra/argo-cd-apps/metal-lb
         targetRevision: metal-lb-app
   template:
@@ -19,7 +19,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/88lexd/website-astro
-        path: {{.repoPath }}
+        path: {{.repoPath}}
         targetRevision: {{.targetRevision}}
       destination:
         server: https://kubernetes.default.svc
