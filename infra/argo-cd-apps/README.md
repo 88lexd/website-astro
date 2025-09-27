@@ -1,4 +1,6 @@
 # Argo CD Apps
-To achieve the "Apps of Apps" concept, this directory contains the child apps for Argo.
+This is the App of Apps directory.
 
-The parent app is defined where argo-cd itself is installed.
+The `root-app.yaml` creates an Application to applies all manifests within this directory.
+
+Argo CD can search sub directories, so apps or appsets can also be installed automatically the next time new Application manifests are created here.

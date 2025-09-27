@@ -1,0 +1,29 @@
+# Using an `ApplicationSet` to future proof the extension of other apps outside of this directory if ever required
+# e.g. If I ever have apps defined in another repo, this can also control those apps
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: root-app
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - list:
+      elements:
+      - name: root-app
+        repoURL: https://github.com/88lexd/website-astro
+        targetRevision: HEAD
+        path: infra/argo-cd-apps
+  template:
+    metadata:
+      name: '{{.name}}'
+    spec:
+      project: default
+      source:
+        repoURL: '{{.repoURL}}'
+        targetRevision: '{{.targetRevision}}'
+        path: '{{.path}}'
+      destination:
+        server: '{{.url}}'
+        namespace: argocd
