@@ -69,8 +69,9 @@ make port-forward-argo
 ```
 
 ## Install Self-Managed Argo App
+The following Argo Application will allow Argo to manage itself.
 ```shell
-argocd app create argocd --file app-argocd.yaml --port-forward --port-forward-namespace argocd
+kubectl apply-f app-argocd.yaml
 ```
 
-To update Argo CD, update the `app-argocd.yaml` Application to define the new version.
+To manage Argo CD, simply update the `app-argocd.yaml` Application to define the new chart version and/or update the `argocd-values.yaml` with new configurations.
