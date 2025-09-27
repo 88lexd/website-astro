@@ -1,4 +1,5 @@
 # WARNING: Only install this ONCE code has been merged!
+# Otherwise the `argocd-values.yaml` will not exist and Argo will install again using default values
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -9,12 +10,17 @@ metadata:
     helm.sh/hook: post-install,post-upgrade
 spec:
   project: default
-  source:
-    chart: argo-cd
-    repoURL: https://argoproj.github.io/argo-helm
-    targetRevision: 8.5.6
-    helm:
-      releaseName: argocd
+  sources:
+    - repoURL: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      targetRevision: 8.5.6
+      helm:
+        releaseName: argocd
+        valueFiles:
+          - $values/infra/argo-cd/argocd-values.yaml
+    - repoURL: https://github.com/88lexd/website-astro
+      targetRevision: HEAD
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
