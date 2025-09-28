@@ -17,3 +17,7 @@ spec:
     path: infra/manifests/ingress
   destination:
     server: https://kubernetes.default.svc
+  syncPolicy:
+    # Should also sync ingress manifests with repo, its a low risk change
+    automated:
+      enabled: true
