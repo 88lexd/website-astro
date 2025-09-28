@@ -1,0 +1,19 @@
+# Expose core services via Nginx ingress
+# Initially this is setup to expose Argo CD via Ingress on a new cluster
+# Most application installed via a Chart should include its own ingress resource and configuration
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/88lexd/website-astro
+    targetRevision: HEAD
+    path: infra/manifest/ingress
+  destination:
+    server: https://kubernetes.default.svc
