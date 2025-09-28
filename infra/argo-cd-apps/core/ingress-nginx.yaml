@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: metal-lb
+  name: ingress-nginx
   namespace: argocd
   # Lets not enable `cascading deletion`.
   # Just in case it messes up IP addresses when this Application ever needs to be converted to an ApplicationSet
@@ -11,12 +11,17 @@ metadata:
   #   - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://github.com/88lexd/website-astro
-    targetRevision: HEAD
-    path: infra/charts/metal-lb
-    helm:
-      releaseName: metallb
+  sources:
+    - repoURL: https://kubernetes.github.io/ingress-nginx
+      chart: ingress-nginx
+      targetRevision: 4.13.2
+      helm:
+        releaseName: ingress-nginx
+        valueFiles:
+          - $values/infra/charts/ingress-nginx/values.yaml
+    - repoURL: https://github.com/88lexd/website-astro
+      targetRevision: HEAD
+      ref: values
   destination:
     server: https://kubernetes.default.svc
-    namespace: metallb-system
+    namespace: ingress-nginx
