@@ -1,0 +1,15 @@
+---
+controller:
+  replicaCount: 1
+  metrics:
+    enabled: true
+    service:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "10254"
+  ingressClassResource:
+    name: nginx
+    ingressClass: nginx # For backwards compatibility with ingress.class annotation
+    default: true
+  admissionWebhooks:
+    enabled: true
