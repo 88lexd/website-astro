@@ -14,6 +14,6 @@ spec:
   source:
     repoURL: https://github.com/88lexd/website-astro
     targetRevision: HEAD
-    path: infra/manifest/ingress
+    path: infra/manifests/ingress
   destination:
     server: https://kubernetes.default.svc
