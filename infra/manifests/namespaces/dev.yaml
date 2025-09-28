@@ -4,4 +4,4 @@ kind: Namespace
 metadata:
   name: dev
   labels:
-    description: Namespace to store development apps
+    env: development

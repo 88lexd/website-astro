@@ -4,4 +4,4 @@ kind: Namespace
 metadata:
   name: prod
   labels:
-    description: Namespace to store production apps
+    env: production
