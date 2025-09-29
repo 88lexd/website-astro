@@ -17,6 +17,7 @@ spec:
       targetRevision: 4.13.2
       helm:
         releaseName: ingress-nginx
+        # Technically can use `valuesObject` but also wanted to show that values can be defined elsewhere
         valueFiles:
           - $values/infra/charts/ingress-nginx/values.yaml
     - repoURL: https://github.com/88lexd/website-astro
