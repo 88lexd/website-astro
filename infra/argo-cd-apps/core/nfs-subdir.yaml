@@ -1,0 +1,28 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nfs-subdir
+  namespace: argocd
+  # Lets not enable `cascading deletion`.
+  # Just in case it messes up IP addresses when this Application ever needs to be converted to an ApplicationSet
+  # If a real cleanup is required, I can always use the UI to delete the application with cascading deletion.
+  # finalizers:
+  #   - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+      chart: nfs-subdir-external-provisioner
+      # helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner && helm repo update
+      # helm search repo nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --versions | head -n5
+      targetRevision: 4.0.18
+      helm:
+        releaseName: nfs-subdir
+        valuesObject:
+          nfs:
+            server: 192.168.0.30
+            path: /data/nfs-subdir
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nfs-subdir
