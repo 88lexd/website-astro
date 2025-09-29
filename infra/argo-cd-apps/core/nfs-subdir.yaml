@@ -19,10 +19,15 @@ spec:
       targetRevision: 4.0.18
       helm:
         releaseName: nfs-subdir
+        # helm show values nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --version 4.0.18
         valuesObject:
           nfs:
             server: 192.168.0.30
             path: /data/nfs-subdir
+          storageClass:
+            name: nfs-client
+            create: true
+            defaultClass: true # Personal cluster.. all PVs should fall under here by default
   destination:
     server: https://kubernetes.default.svc
     namespace: nfs-subdir
