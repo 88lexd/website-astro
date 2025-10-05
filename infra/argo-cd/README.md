@@ -32,6 +32,9 @@ $ cd ./infra/argo-cd
 $ helm repo add argo-cd https://argoproj.github.io/argo-helm
 $ helm repo update
 
+# Note: To find what values are available
+$ helm show values argo-cd/argo-cd --version "8.5.6"
+
 $ helm upgrade --install argocd --namespace argocd --create-namespace --values argocd-values.yaml argo-cd/argo-cd --version "8.5.6"
 ```
 

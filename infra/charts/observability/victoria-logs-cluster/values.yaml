@@ -1,0 +1,49 @@
+---
+vmauth:
+  enabled: false # Own lab.. no need for authentication
+
+vlstorage:
+  # Do not AutoScale storage components. Use fixed Replica to ensure stability
+  # Home lab only requires a single replica pod running.
+  replicaCount: 1
+  retentionPeriod: 30d
+  persistentVolume:
+    enabled: true
+    # This is my default StorageClass, defining it anyway
+    # Homelab, doesn't matter about latency, not much logs are expected to be generated
+    storageClassName: nfs-client
+    accessModes:
+      - ReadWriteMany # Must match `nfs-subdir` dynamic provisioner
+    size: 8Gi
+
+vlinsert:
+  resources:
+    requests:
+      cpu: "100m" # Only need CPU for HPA to work..
+      memory: "10Mi"
+    limits:
+      cpu: "1"
+      memory: "500Mi"
+  horizontalPodAutoscaler:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+    metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 100 # Calculated based on `current cpu usage / requests.cpu`
+
+vlselect:
+  replicaCount: 1 # Home lab only requires a single replica pod running.
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    pathType: Prefix
+    hosts:
+    - name: vlclogs.home
+      path:
+      - /
+      port: http
