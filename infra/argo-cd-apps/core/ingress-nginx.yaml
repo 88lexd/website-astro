@@ -5,7 +5,7 @@ metadata:
   name: ingress-nginx
   namespace: argocd
   # Lets not enable `cascading deletion`.
-  # Just in case it messes up IP addresses when this Application ever needs to be converted to an ApplicationSet
+  # Just in case it messes up ingress IP  when this Application ever needs to be converted to an ApplicationSet
   # If a real cleanup is required, I can always use the UI to delete the application with cascading deletion.
   # finalizers:
   #   - resources-finalizer.argocd.argoproj.io

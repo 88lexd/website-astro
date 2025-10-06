@@ -4,8 +4,7 @@ kind: Application
 metadata:
   name: victoria-logs
   namespace: argocd
-  # Lets not enable `cascading deletion`.
-  # Just in case it messes up IP addresses when this Application ever needs to be converted to an ApplicationSet
+  # Lets not enable `cascading deletion`. I want to retain my logs if anything ever happens to this Argo App
   # If a real cleanup is required, I can always use the UI to delete the application with cascading deletion.
   # finalizers:
   #   - resources-finalizer.argocd.argoproj.io
