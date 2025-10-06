@@ -26,5 +26,5 @@ All future management of cert-manager will be managed through Argo CD.
 Once ArgoCD is in sync and to ensure no accidental future changes are made using Helm from local, the release secret is deleted.
 ```shell
 # Delete all related versions as required
-kubectl delete secret -n monitoring sh.helm.release.v1.cert-manager.v{1..2}
+kubectl delete secret -n cert-manager sh.helm.release.v1.cert-manager.v{1..2}
 ```
