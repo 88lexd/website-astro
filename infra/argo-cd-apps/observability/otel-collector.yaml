@@ -1,0 +1,21 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: otel-collector
+  namespace: argocd
+  # Lets not enable `cascading deletion`. I want to retain my logs if anything ever happens to this Argo App
+  # If a real cleanup is required, I can always use the UI to delete the application with cascading deletion.
+  # finalizers:
+  #   - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/88lexd/website-astro
+      targetRevision: HEAD
+      path: infra/charts/observability/otel-collector
+      helm:
+        releaseName: otel
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring

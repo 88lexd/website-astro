@@ -1,0 +1,8 @@
+apiVersion: v2
+name: otel-collector
+version: 1.0.0
+dependencies:
+- name: opentelemetry-operator
+  # Be careful when bumping version or deleting this chart. The CRDs are installed as part of the `opentelemetry-operator` chart template
+  version: 0.97.1
+  repository: https://open-telemetry.github.io/opentelemetry-helm-charts
