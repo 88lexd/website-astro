@@ -1,0 +1,10 @@
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.clusterIssuerName }}
+  annotations:
+    # Allow helm initial install to work (e.g. Before CRDs are installed)
+    helm.sh/hook: post-install,post-upgrade
+spec:
+  selfSigned: {}

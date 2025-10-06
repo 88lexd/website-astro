@@ -1,0 +1,9 @@
+apiVersion: v2
+name: cert-mgr
+version: 1.0.0
+dependencies:
+  - name: cert-manager
+    version: v1.18.2
+    repository: oci://quay.io/jetstack/charts
+    alias: cert-manager
+    condition: cert-manager.enabled

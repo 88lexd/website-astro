@@ -1,0 +1,21 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  # Lets not enable `cascading deletion`.
+  # If a real cleanup is required, I can always use the UI to delete the application with cascading deletion.
+  # finalizers:
+  #   - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/88lexd/website-astro
+    targetRevision: HEAD
+    path: infra/charts/cert-manager
+    helm:
+      releaseName: cert-manager
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
