@@ -1,0 +1,7 @@
+---
+clusterIssuerName: selfsigned-issuer
+
+cert-manager:
+  crds:
+    # CRDs are managed as Helm templates. Be very careful whenever removing cert-manager
+    enabled: true
