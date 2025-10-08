@@ -22,7 +22,7 @@ spec:
           manager:
             targetAllocatorImage:
               repository: ghcr.io/open-telemetry/opentelemetry-operator/target-allocator
-              # Image tag version should match the otel-operator chart App version (Check README for the command)
+              # Image tag version should match the otel-operator chart App version
               # Ref: https://github.com/open-telemetry/opentelemetry-operator/pkgs/container/opentelemetry-operator%2Ftarget-allocator
               tag: "0.136.0"
 
