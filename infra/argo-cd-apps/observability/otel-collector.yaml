@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: otel-collector
+  name: otel-operator
   namespace: argocd
   # Lets not enable `cascading deletion`. I want to retain my logs if anything ever happens to this Argo App
   # If a real cleanup is required, I can always use the UI to delete the application with cascading deletion.
@@ -11,11 +11,21 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://github.com/88lexd/website-astro
-      targetRevision: HEAD
-      path: infra/charts/observability/otel-collector
+    - repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+      chart: opentelemetry-operator
+      targetRevision: 0.97.1
       helm:
         releaseName: otel
+        valuesObject:
+          # helm search repo open-telemetry/opentelemetry-operator --versions
+          # helm show values open-telemetry/opentelemetry-operator --version ${CHART_VERSION}
+          manager:
+            targetAllocatorImage:
+              repository: ghcr.io/open-telemetry/opentelemetry-operator/target-allocator
+              # Image tag version should match the otel-operator chart App version
+              # Ref: https://github.com/open-telemetry/opentelemetry-operator/pkgs/container/opentelemetry-operator%2Ftarget-allocator
+              tag: "0.136.0"
+
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
