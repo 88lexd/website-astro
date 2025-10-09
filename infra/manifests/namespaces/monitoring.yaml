@@ -5,4 +5,3 @@ metadata:
   name: monitoring
   labels:
     env: production
-    pod-security.kubernetes.io/enforce: privileged
