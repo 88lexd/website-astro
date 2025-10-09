@@ -1,0 +1,3 @@
+---
+targetAllocator:
+  replicas: 1

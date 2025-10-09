@@ -1,0 +1,81 @@
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: "{{ .Release.Name }}-daemon"
+spec:
+  mode: daemonset
+  serviceAccount: "{{ .Release.Name }}-collector-sa"
+  terminationGracePeriodSeconds: 30
+
+  # # Target Allocator Configuration
+  # targetAllocator:
+  #   enabled: true
+  #   serviceAccount: "{{ .Release.Name }}-targetallocator-sa"
+  #   allocationStrategy: per-node
+  #   replicas: {{ .Values.targetAllocator.replicas }}
+
+  # Main Configuration
+  config:
+    # Start Receivers
+    receivers:
+      filelog/std:
+        exclude:
+          - /var/log/pods/*/otel-collector/*.log
+          - /var/log/pods/*/otc-container/*.log
+        include:
+          - /var/log/containers/*.log
+        include_file_name: false
+        include_file_path: true
+        start_at: end
+      # OpenTelemetry Protocol
+      # otlp:
+      #   protocols:
+      #     grpc:
+      #       endpoint: 0.0.0.0:4317
+      #     http:
+      #       endpoint: 0.0.0.0:4318
+
+      # Prometheus Receiver (Used in conjunction with Target Allocator)
+      # prometheus:
+      #   config:
+      #     scrape_configs:
+      #     # Scrape Otel Collector
+      #     - job_name: 'otel-collector'
+      #       scrape_interval: 30s
+      #       static_configs:
+      #       - targets: [ '0.0.0.0:8888' ]
+      #       metric_relabel_configs:
+      #       - action: labeldrop
+      #         regex: (id|name)
+      #       - action: labelmap
+      #         regex: label_(.+)
+      #         replacement: $$1
+    # End Receivers
+
+    # Start Processers
+    processors:
+      batch: {}
+
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+    # End Processers
+
+    # Start Exporters
+    exporters:
+      debug: {}
+    # Enx Exporters
+
+    service:
+      pipelines:
+        # metrics:
+        #   receivers: [prometheus]
+        #   processors: [memory_limiter, batch]
+        #   exporters: [debug]
+
+        logs:
+          receivers: [filelog/std]
+          processors: [memory_limiter, batch]
+          exporters: [debug]

@@ -1,5 +1,7 @@
 # VictoriaLogs Cluster - Chart
-As all deployments are handled through ArgoCD, this directory only contains the `values.yaml` that ArgoCD Application will use to manage the deployment.
+Argo CD is used for installing this chart.
+
+This directory only contains the `values.yaml` required to be passed into the chart.
 
 ## Initial Setup
 For fast feedback loop, the initial setup is performed locally by using the following:
