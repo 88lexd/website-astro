@@ -1,18 +1,21 @@
 dex:
   enabled: false # Home lab do not require external auth
-notifications:
-  secret:
-    create: false
-    # This is the default value, but specifying it to remind myself how its referenced
-    # Secret is created manually before installing Argo
-    name: argocd-notifications-secret
-  context:
-    service.email.brevo:
-      from: argocd-no-reply@lexdsolutions.com
-      username: '$email-username'
-      password: '$email-password'
-      host: smtp-relay.brevo.com
-      port: 587
+
+# 11/10/2025: Use default settings. Something is not working and is generating too much errors
+#             The secret that is created manually has also been removed
+# notifications:
+#   secret:
+#     create: false
+#     # This is the default value, but specifying it to remind myself how its referenced
+#     # Secret is created manually before installing Argo
+#     name: argocd-notifications-secret
+#   context:
+#     service.email.brevo:
+#       from: argocd-no-reply@lexdsolutions.com
+#       username: '$email-username'
+#       password: '$email-password'
+#       host: smtp-relay.brevo.com
+#       port: 587
 applicationSet:
   replicas: 1
 server:
