@@ -94,13 +94,13 @@ collectors:
       # Start Processors
       processors:
         batch:
-          send_batch_size: 1000
-          timeout: 1s
-          send_batch_max_size: 1500
+          send_batch_size: 4096
+          send_batch_max_size: 4096
+          timeout: 5s
 
         resourcedetection/env:
           detectors: [env]
-          timeout: 2s
+          timeout: 3s
           override: false
 
         filter/exclude-logs:
@@ -111,6 +111,15 @@ collectors:
               resource_attributes:
                 - key: k8s.namespace.name
                   value: metallb-system
+
+        resource/reduce-attributes:
+          attributes:
+            - key: k8s.cluster.uid
+              action: delete
+            - key: k8s.pod.uid
+              action: delete
+            - key: k8s.replicaset.uid
+              action: delete
       # End Processors
 
 
@@ -147,8 +156,9 @@ collectors:
               # The k8sattributes processor is created by the preset. Validate by running:
               # $ kubectl get opentelemetrycollectors -n monitoring otel-daemon -o yaml | yq '.spec.config.processors.k8sattributes'
               - k8sattributes
-              - filter/exclude-logs
               - resourcedetection/env
+              - filter/exclude-logs
+              - resource/reduce-attributes
               - batch
             exporters:
               # - debug
