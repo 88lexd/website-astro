@@ -66,17 +66,20 @@ collectors:
     presets:
       logsCollection:
         enabled: true
+        includeCollectorLogs: false
       kubeletMetrics:
-        enabled: true
+        enabled: false
       hostMetrics:
         enabled: true
       kubernetesAttributes:
         enabled: true
       kubernetesEvents:
-        enabled: true
+        enabled: false
       clusterMetrics:
-        enabled: true
+        enabled: false
     config:
+      #################
+      # Start Recivers
       receivers:
         otlp:
           protocols:
@@ -84,18 +87,46 @@ collectors:
               endpoint: 0.0.0.0:4317
             http:
               endpoint: 0.0.0.0:4318
+      # End Recivers
+
+
+      ###################
+      # Start Processors
       processors:
         batch:
           send_batch_size: 1000
           timeout: 1s
           send_batch_max_size: 1500
+
         resourcedetection/env:
           detectors: [env]
           timeout: 2s
           override: false
+
+        filter/exclude-logs:
+          logs:
+            # any logs matching filters are excluded from remainder of pipeline
+            exclude:
+              match_type: regexp
+              resource_attributes:
+                - key: k8s.namespace.name
+                  value: metallb-system
+      # End Processors
+
+
+      ##################
+      # Start Exporters
       exporters:
         debug: {}
 
+        otlphttp/victoria-logs:
+          # Note: Victoria Logs docs mentions the use of port `9428`, but this only applies to the `single` installation
+          # I am running Victoria Logs Cluster, so the insert service uses port `9481` instead
+          logs_endpoint: http://vlc-victoria-logs-cluster-vlinsert.monitoring.svc:9481/insert/opentelemetry/v1/logs
+      # End Exporters
+
+      ##########################
+      # Start Service Pipelines
       service:
         pipelines:
           metrics:
@@ -106,11 +137,20 @@ collectors:
               - batch
             exporters:
               - debug
+
           logs:
             receivers:
-              - otlp
+              # This receiver is created by the preset. Validate by running:
+              # $ kubectl get opentelemetrycollectors -n monitoring otel-daemon -o yaml | yq '.spec.config.receivers.filelog'
+              - filelog
             processors:
+              # The k8sattributes processor is created by the preset. Validate by running:
+              # $ kubectl get opentelemetrycollectors -n monitoring otel-daemon -o yaml | yq '.spec.config.processors.k8sattributes'
+              - k8sattributes
+              - filter/exclude-logs
               - resourcedetection/env
               - batch
             exporters:
-              - debug
+              # - debug
+              - otlphttp/victoria-logs
+      # End Service Pipelines

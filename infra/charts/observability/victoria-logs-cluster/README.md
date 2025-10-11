@@ -38,3 +38,11 @@ Once ArgoCD is in sync and to ensure no accidental future changes are made using
 # Delete all related versions as required
 kubectl delete secret -n monitoring sh.helm.release.v1.vlc.v1
 ```
+
+# Useful Queries
+As logs are ingested into Victoria Logs from Otel Collector. The following are some common query I've been using.
+
+```shell
+# Check which namespace is generating the most logs
+* | stats by (k8s.namespace.name) count() as log_count | sort(log_count) desc | limit 20
+```
