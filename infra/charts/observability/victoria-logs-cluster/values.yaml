@@ -43,7 +43,8 @@ vlselect:
     ingressClassName: nginx
     pathType: Prefix
     hosts:
+    # From local network, use https://vlclogs.home/select/vmui to access Log Explorer UI
     - name: vlclogs.home
       path:
-      - /
+      - /select/vmui
       port: http

@@ -1,5 +1,7 @@
 # VictoriaLogs Cluster - Chart
-As all deployments are handled through ArgoCD, this directory only contains the `values.yaml` that ArgoCD Application will use to manage the deployment.
+Argo CD is used for installing this chart.
+
+This directory only contains the `values.yaml` required to be passed into the chart.
 
 ## Initial Setup
 For fast feedback loop, the initial setup is performed locally by using the following:
@@ -35,4 +37,12 @@ Once ArgoCD is in sync and to ensure no accidental future changes are made using
 ```shell
 # Delete all related versions as required
 kubectl delete secret -n monitoring sh.helm.release.v1.vlc.v1
+```
+
+# Useful Queries
+As logs are ingested into Victoria Logs from Otel Collector. The following are some common query I've been using.
+
+```shell
+# Check which namespace is generating the most logs
+* | stats by (k8s.namespace.name) count() as log_count | sort(log_count) desc | limit 20
 ```
