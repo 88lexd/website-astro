@@ -25,8 +25,19 @@ helm upgrade --install otel open-telemetry/opentelemetry-kube-stack --version "0
 ## Argo CD Application
 The Argo CD Application for `otel-collector` is located in `infra/argo-cd-apps/observability/otel.yaml`
 
-## Delete Helm Secret
-Once ArgoCD is in sync and to ensure no accidental future changes are made using Helm from local, the release secret is deleted.
+
+## Retaining Helm Release for Rapid Local Development
+For fast development feedback, the Helm release/secret will be retained so I can continue using Helm to test and deploy from locally.
+
+Once changes are validated, they will be merged into the `main` branch and ArgoCD will ensure the cluster is in Sync.
+
+**Note:** The Argo App does not have self-healing enabled, so the sync is manual and it will not revert changes made locally using Helm.
 ```shell
-kubectl delete secret -n monitoring sh.helm.release.v1.otel.v1
+# WARNING: If VERSION is changed, make sure it is also reflected in `/infra/argo-cd-apps/observability/otel.yaml`
+CHART_VERSION="0.11.0"
+
+# Make changes to values.yaml and run
+helm upgrade --install otel open-telemetry/opentelemetry-kube-stack --version "${CHART_VERSION}" \
+  --values values.yaml \
+  --namespace monitoring
 ```
