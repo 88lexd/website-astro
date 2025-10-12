@@ -28,24 +28,6 @@ collectors:
         cpu: "1"
         memory: 500Mi
 
-    # Environment variables for the collector
-    env: []
-    # - name: ENV_VAR1
-    #   value: value1
-    # - name: ENV_VAR2
-    #   value: value2
-
-    # Tolerations for the collector to also run as Daemon on the master node
-    tolerations:
-    - key: "node-role.kubernetes.io/control-plane"
-      operator: "Exists"
-      effect: "NoSchedule"
-
-    # Observability configuration for the collector
-    observability:
-      metrics:
-        enableMetrics: true
-
     # Target allocator configuration
     targetAllocator:
       enabled: true
@@ -60,6 +42,12 @@ collectors:
           cpu: "500m"
           memory: "128Mi"
 
+    # Tolerations for the collector to also run as Daemon on the master node
+    tolerations:
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
+
     # A scrape config file (part of the kube-stack Chart itself) to instruct the daemon collector to pull metrics from any matching targets on the same node with
     # prometheus.io/scrape=true
     scrape_configs_file: "daemon_scrape_configs.yaml"
@@ -68,7 +56,7 @@ collectors:
         enabled: true
         includeCollectorLogs: false
       kubeletMetrics:
-        enabled: false
+        enabled: true
       hostMetrics:
         enabled: true
       kubernetesAttributes:
@@ -77,6 +65,20 @@ collectors:
         enabled: false
       clusterMetrics:
         enabled: false
+
+    # Observability configuration for the collector
+    observability:
+      metrics:
+        enableMetrics: true
+
+    # Environment variables for the collector
+    env:
+      - name: NEW_RELIC_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: newrelic-api
+            key: api-key
+
     config:
       #################
       # Start Recivers
@@ -103,14 +105,16 @@ collectors:
           timeout: 3s
           override: false
 
-        filter/exclude-logs:
+        # Keeping minimal logs locally.
+        # Will be use NewRelic but retention there is much shorter.
+        filter/include-logs:
           logs:
-            # any logs matching filters are excluded from remainder of pipeline
-            exclude:
+            # any logs NOT matching filters are excluded from remainder of pipeline
+            include:
               match_type: regexp
               resource_attributes:
                 - key: k8s.namespace.name
-                  value: metallb-system
+                  value: "(ingress-nginx|prod|dev)"
 
         resource/reduce-attributes:
           attributes:
@@ -128,10 +132,16 @@ collectors:
       exporters:
         debug: {}
 
-        otlphttp/victoria-logs:
+        otlphttp/victoriaLogs:
           # Note: Victoria Logs docs mentions the use of port `9428`, but this only applies to the `single` installation
           # I am running Victoria Logs Cluster, so the insert service uses port `9481` instead
           logs_endpoint: http://vlc-victoria-logs-cluster-vlinsert.monitoring.svc:9481/insert/opentelemetry/v1/logs
+
+
+        otlphttp/newRelic:
+          endpoint: https://otlp.nr-data.net:443
+          headers:
+            api-key: ${env:NEW_RELIC_API_KEY}
       # End Exporters
 
       ##########################
@@ -140,27 +150,43 @@ collectors:
         pipelines:
           metrics:
             receivers:
+              - prometheus # Created by preset
+              - hostmetrics # Created by preset
               - otlp
-            processors:
-              - resourcedetection/env
-              - batch
-            exporters:
-              - debug
-
-          logs:
-            receivers:
-              # This receiver is created by the preset. Validate by running:
-              # $ kubectl get opentelemetrycollectors -n monitoring otel-daemon -o yaml | yq '.spec.config.receivers.filelog'
-              - filelog
             processors:
               # The k8sattributes processor is created by the preset. Validate by running:
               # $ kubectl get opentelemetrycollectors -n monitoring otel-daemon -o yaml | yq '.spec.config.processors.k8sattributes'
               - k8sattributes
               - resourcedetection/env
-              - filter/exclude-logs
+              - batch
+            exporters:
+              - debug
+              - otlphttp/newRelic
+
+          logs/victoriaLogs:
+            # This receiver is created by the preset. Validate by running:
+            # $ kubectl get opentelemetrycollectors -n monitoring otel-daemon -o yaml | yq '.spec.config.receivers.filelog'
+            receivers: [filelog]
+            processors:
+              # The k8sattributes processor is created by the preset (same as metrics)
+              - k8sattributes
+              - filter/include-logs
+              - resourcedetection/env
               - resource/reduce-attributes
               - batch
             exporters:
               # - debug
-              - otlphttp/victoria-logs
+              - otlphttp/victoriaLogs
+
+          logs/newRelic:
+            # This receiver is created by the preset (same as above)
+            receivers: [filelog]
+            processors:
+              # The k8sattributes processor is created by the preset (same as metrics)
+              - k8sattributes
+              - resourcedetection/env
+              - batch
+            exporters:
+              # - debug
+              - otlphttp/newRelic
       # End Service Pipelines

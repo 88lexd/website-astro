@@ -16,6 +16,9 @@ open-telemetry/opentelemetry-kube-stack 0.11.0          0.129.1         OpenTele
 open-telemetry/opentelemetry-kube-stack 0.10.5          0.129.1         OpenTelemetry Quickstart chart for Kubernetes. ...
 ...
 
+# Create NewRelic API secret (This secret is read by the values.yaml)
+kubectl create secret -n monitoring generic newrelic-api --from-literal=api-key='<API-KEY>'
+
 helm upgrade --install otel open-telemetry/opentelemetry-kube-stack --version "0.11.0" \
   --values values.yaml \
   --namespace monitoring \
