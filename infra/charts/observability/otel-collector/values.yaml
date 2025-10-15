@@ -198,6 +198,14 @@ collectors:
             exporters:
               # - debug
               - otlphttp/newRelic
+
+          logs/directOtlp:
+            receivers: [otlp]
+            processors:
+              - batch
+            exporters:
+              - debug
+              - otlphttp/newRelic
       # End Service Pipelines
 
 extraObjects:
