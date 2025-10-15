@@ -39,7 +39,14 @@ Once changes are validated, they will be merged into the `main` branch and ArgoC
 # WARNING: If VERSION is changed, make sure it is also reflected in `/infra/argo-cd-apps/observability/otel.yaml`
 CHART_VERSION="0.11.0"
 
-# Make changes to values.yaml and run
+# >>> Make changes to values.yaml then; <<<
+
+# Validate template output if required
+helm template otel open-telemetry/opentelemetry-kube-stack --version "${CHART_VERSION}" \
+  --values values.yaml \
+  --namespace monitoring | less
+
+# Upgrade Release
 helm upgrade --install otel open-telemetry/opentelemetry-kube-stack --version "${CHART_VERSION}" \
   --values values.yaml \
   --namespace monitoring
