@@ -137,30 +137,33 @@ collectors:
         filter/exclude-metrics:
           # any names NOT matching filters are excluded from remainder of pipeline
           metrics:
-            exclude:
-              match_type: regexp
-              regexp:
-                cacheenabled: true
-              metric_names:
-                - system\.+
-                - k8s\.node\.filesystem\.+
-                - k8s\.node\.memory\.+
-                - k8s\.pod\.filesystem\.+
-                - k8s\.pod\.memory\.+
-                - k8s\.pod\.volume\.+
-                - k8s\.pod\.network\.+
-                - k8s\.volume\.+
-                - container\.cpu\.+
-                - container\.memory\.+
-                - container\.filesystem\.+
             include:
               match_type: regexp
               regexp:
                 cacheenabled: true
               metric_names:
+                - k8s\.node\.cpu\.usage
                 - k8s\.node\.memory\.usage
+                - k8s\.node\.uptime
+                - k8s\.pod\.cpu\.usage
                 - k8s\.pod\.memory\.usage
-                - container\.memory\.usage
+            # exclude:
+            #   match_type: regexp
+            #   regexp:
+            #     cacheenabled: true
+            #   metric_names:
+            #     - system\.+
+            #     - k8s\.node\.filesystem\.+
+            #     - k8s\.node\.memory\.+
+            #     - k8s\.pod\.filesystem\.+
+            #     - k8s\.pod\.memory\.+
+            #     - k8s\.pod\.volume\.+
+            #     - k8s\.pod\.network\.+
+            #     - k8s\.volume\.+
+            #     - container\.cpu\.+
+            #     - container\.memory\.+
+            #     - container\.filesystem\.+
+
       # End Processors
 
 
