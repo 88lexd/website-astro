@@ -124,6 +124,9 @@ collectors:
               resource_attributes:
                 - key: k8s.namespace.name
                   value: "(ingress-nginx|prod|dev)"
+                # TODO: Must come back and fix. By adding this, the record itself must match ALL attributes which is not true
+                # - key: service.name
+                #   value: "honeypot"
 
         resource/reduce-attributes:
           attributes:
@@ -202,7 +205,7 @@ collectors:
               - filter/exclude-metrics
               - batch
             exporters:
-              - debug
+              # - debug
               - otlphttp/newRelic
 
           logs/victoriaLogs:
@@ -212,8 +215,8 @@ collectors:
             processors:
               # The k8sattributes processor is created by the preset (same as metrics)
               - k8sattributes
-              - filter/include-logs
               - resourcedetection/env
+              - filter/include-logs
               - resource/reduce-attributes
               - batch
             exporters:
@@ -237,7 +240,7 @@ collectors:
             processors:
               - batch
             exporters:
-              - debug
+              # - debug
               - otlphttp/newRelic
       # End Service Pipelines
 
