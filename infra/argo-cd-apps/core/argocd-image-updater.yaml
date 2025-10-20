@@ -7,10 +7,13 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/v0.17.0/manifests/install.yaml
-    # `targetRevision` and `path` is ignored for HTTP(s) sources.
-    targetRevision: HEAD
-    path: .
+    repoURL: https://github.com/argoproj-labs/argocd-image-updater.git
+    targetRevision: v0.17.0
+    directory:
+      # Ref: https://github.com/argoproj-labs/argocd-image-updater/tree/v0.17.0/manifests
+      exclude: '{base/*}'
+      include: 'install.yaml'
+    path: manifests
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
