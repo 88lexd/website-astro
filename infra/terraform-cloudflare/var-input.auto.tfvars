@@ -10,7 +10,7 @@ tunnels = [
     ingress_rule = {
       hostname = "dev.lexdsolutions.com"
       path     = "/"
-      service  = "http://192.168.0.23"
+      service  = "http://192.168.0.45"
     }
   },
   {
@@ -20,7 +20,7 @@ tunnels = [
     ingress_rule = {
       hostname = "lexdsolutions.com"
       path     = "/"
-      service  = "http://192.168.0.23"
+      service  = "http://192.168.0.45"
     }
   },
   {
@@ -30,7 +30,7 @@ tunnels = [
     ingress_rule = {
       hostname = "todo.henrydinh.net"
       path     = "/"
-      service  = "http://192.168.0.23"
+      service  = "http://192.168.0.45"
     }
   }
 ]
