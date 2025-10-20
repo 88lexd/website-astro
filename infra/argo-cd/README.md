@@ -83,3 +83,15 @@ To manage Argo CD, simply update the `app-argocd.yaml` Application to define the
 Argo does not do a Helm release deployment. It performs `helm template` and manages the manifests directly.
 
 Once confirm Argo sync is working, delete the Helm secret that controls the Helm release and prevent accidental management using Helm directly from local.
+
+## Ingress Controller
+Since this is a brand new cluster, all the above instructions requires port-forwarding to work.
+
+Now that I have ingress running and Argo properly setup. There is an ingress resource for Argo so I can now simply use the following to authenticate to Argo CD using CLI
+
+```shell
+# Login in cached, shouldn't need to login everytime
+argocd login argocd.home --grpc-web
+
+argocd app list
+```

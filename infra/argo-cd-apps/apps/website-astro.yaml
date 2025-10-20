@@ -1,0 +1,28 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: website-astro
+  annotations:
+    #######################
+    # Argo CD Image Updater
+    # This will always use the newest tag
+    argocd-image-updater.argoproj.io/image-list: 88lexd/website-astro
+    # This will checkout the `main` branch and commit/push change into the `argo-cd-image-updater` branch
+    # In this repo, there is a GitHub Actions workflow that will auto create a PR when there is a push to this branch.
+    argocd-image-updater.argoproj.io/git-branch: main:argo-cd-image-updater
+    # Format is using `secret:<namespace>:<secret-name>`
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-cred-website-astro
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:88lexd/website-astro.git
+    targetRevision: main
+    path: infra/charts/website-astro
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
