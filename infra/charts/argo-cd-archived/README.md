@@ -1,11 +1,9 @@
 # Update as of Sept 2025
 This Argo setup is an older one running in the previous K8s cluster.
 
-In my new cluster, a seperate Argo is setup properly with:
-- Self managed Argo
-- App of Apps
+In the new cluster, a seperate Argo is setup as fully [self-managed Argo](../../argo-cd/) and with the [App of Apps pattern](../../argo-cd-apps/).
 
-This directory should be removed once everything is migrated over to the new Talos cluster.
+This directory is retainined for references only. It may be removed in the future.
 
 # Argo CD Helm Chart
 Use this to install Argo CD for automated deployments.
