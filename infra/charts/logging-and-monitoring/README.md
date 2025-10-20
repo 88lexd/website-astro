@@ -1,4 +1,15 @@
+# Important Update!!
+As of October 2025, Observability is now driven by OTel Collector!
+
+ - [Argo CD Apps](../../argo-cd-apps/observability/)
+ - [otel-collector-chart](../observability/otel-collector/)
+ - [victoria-logs-chart](../observability/victoria-logs-cluster/)
+ - [NewRelic (Metrics + Logs)](https://newrelic.com/)
+
+This chart is now decommissioned in favor for OTel Collector.
+
 # Logging & Monitoring - Prometheus, Grafana, Loki and Promtail
+
 Deploys Prometheus, Grafana and Loki into the Kubernetes cluster.
 
 This chart was inspired by:
