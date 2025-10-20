@@ -25,6 +25,11 @@ spec:
         repoURL: https://github.com/88lexd/website-astro
         targetRevision: HEAD
         path: infra/argo-cd-apps/observability
+      # General apps
+      - name: apps
+        repoURL: https://github.com/88lexd/website-astro
+        targetRevision: HEAD
+        path: infra/argo-cd-apps/apps
   template:
     metadata:
       name: '{{.name}}'
