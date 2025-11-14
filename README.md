@@ -4,37 +4,6 @@ This is my [personal blog](https://lexdsolutions.com) that is powered on Astro a
 ## Dev Setup
 The following are notes for myself on how I do development work on my machine.
 
-### Git-Hooks
-(one-time task) Setup `git-hooks` for conventional commit messages.
-This will enforce me to follow proper commit messages which is then used to create release notes by the pipeline.
-```bash
-# Change dir into this repo
-cd ~/code/git/website-astro
-
-# Create the git-hook
-tee .git/hooks/commit-msg <<EOF
-#!/usr/bin/env python3
-import re, sys, os
-
-def main():
-	# example:
-	# feat(apikey): added the ability to add api key to configuration
-	pattern = r'(build|ci|docs|feat|fix|perf|refactor|style|test|chore|revert)(\([\w\-]+\))?:\s.*'
-	filename = sys.argv[1]
-	ss = open(filename, 'r').read()
-	m = re.match(pattern, ss)
-	if m == None: raise Exception("conventional commit validation failed")
-
-if __name__ == "__main__":
-	main()
-EOF
-
-chmod u+x .git/hooks/commit-msg
-
-# Debug - At one point, I had `core.hooksPath` pointing to `.husky`
-# This should be resolved, but the following command fixed it
-git config --local core.hooksPath .git/hooks
-```
 
 ### Local Development
 Use the following to start development
@@ -53,11 +22,11 @@ make dev
 make dev-shell
 ```
 
-Access web server
+Setup Host -> WSL Port Forwarding
 ```shell
-# Using WSL IP
-$ ip a | grep eth0: -A3 | grep inet
-    inet 172.30.49.60/20 brd 172.30.63.255 scope global eth0
+# Get WSL IP
+$ make wsl-ip
+WSL IP: 172.30.49.60
 
 # Using Windows portproxy
 # On Admin PowerShell
@@ -66,6 +35,9 @@ PS> netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=80 con
 # Check
 netsh interface portproxy show all
 ```
+
+On Windows host, launch http://localhost
+
 
 ### Test Production Build
 I may want to test the production build locally before releasing.
@@ -111,4 +83,36 @@ rm -rf node_modules/
 pnpm up astro@4
 
 # This updated the package.json, so next time it should always install v4 which has the symlink fix
+```
+
+### Git-Hooks
+(one-time task) Setup `git-hooks` for conventional commit messages.
+This will enforce me to follow proper commit messages which is then used to create release notes by the pipeline.
+```bash
+# Change dir into this repo
+cd ~/code/git/website-astro
+
+# Create the git-hook
+tee .git/hooks/commit-msg <<EOF
+#!/usr/bin/env python3
+import re, sys, os
+
+def main():
+	# example:
+	# feat(apikey): added the ability to add api key to configuration
+	pattern = r'(build|ci|docs|feat|fix|perf|refactor|style|test|chore|revert)(\([\w\-]+\))?:\s.*'
+	filename = sys.argv[1]
+	ss = open(filename, 'r').read()
+	m = re.match(pattern, ss)
+	if m == None: raise Exception("conventional commit validation failed")
+
+if __name__ == "__main__":
+	main()
+EOF
+
+chmod u+x .git/hooks/commit-msg
+
+# Debug - At one point, I had `core.hooksPath` pointing to `.husky`
+# This should be resolved, but the following command fixed it
+git config --local core.hooksPath .git/hooks
 ```
