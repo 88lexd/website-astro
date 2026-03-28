@@ -3,7 +3,7 @@
 apiVersion: gateway.kgateway.dev/v1alpha1
 kind: GatewayParameters
 metadata:
-  name: custom-gw-params
+  name: kgateway-proxy-params
   namespace: kgateway-system
 spec:
   kube:

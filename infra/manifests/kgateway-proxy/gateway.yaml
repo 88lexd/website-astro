@@ -2,13 +2,13 @@
 kind: Gateway
 apiVersion: gateway.networking.k8s.io/v1
 metadata:
-  name: custom
+  name: kgateway-proxy
   namespace: kgateway-system
 spec:
   gatewayClassName: kgateway
   infrastructure:
     parametersRef:
-      name: custom-gw-params
+      name: kgateway-proxy-params
       group: gateway.kgateway.dev
       kind: GatewayParameters
   listeners:
