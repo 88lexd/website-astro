@@ -1,0 +1,20 @@
+---
+# See here for mroe config options: https://kgateway.dev/docs/envoy/latest/reference/api/#gatewayparametersspec
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: GatewayParameters
+metadata:
+  name: custom-gw-params
+  namespace: kgateway-system
+spec:
+  kube:
+    envoyContainer:
+      bootstrap:
+        logLevel: debug
+    service:
+      type: LoadBalancer # This is the default, specifying here anyway for reference only
+      extraLabels:
+        gateway: custom
+      externalTrafficPolicy: Local # Set to Local to preserve the original client IP address
+    podTemplate:
+      extraLabels:
+        gateway: custom

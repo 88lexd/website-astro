@@ -1,0 +1,17 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kgateway-proxy
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3" # Configure proxy only after `kgateway.yaml` app is setup
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/88lexd/website-astro
+    targetRevision: HEAD
+    path: infra/manifests/kgateway-proxy
+  destination:
+    server: https://kubernetes.default.svc
+
