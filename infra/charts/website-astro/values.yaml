@@ -9,3 +9,7 @@ deployment:
 
 ingress:
   host: lexdsolutions.com
+
+gateway:
+  parentRefsName: kgateway-proxy
+  parentRefsNamespace: kgateway-system
