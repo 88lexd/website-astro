@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: kgateway
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2" # Installs after `kgateway-crds.yaml`
 spec:
   project: default
   sources:
