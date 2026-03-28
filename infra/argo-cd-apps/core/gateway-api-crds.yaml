@@ -1,0 +1,27 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway-api-crds
+  namespace: argocd
+  annotations:
+    # Can install this CRD alongside other apps except for kgateway which would have a higher number
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kubernetes-sigs/gateway-api.git
+    targetRevision: v1.5.1
+    # This path contains the kustomization.yam which Argo CD's built-in Kustomize support will render
+    path: config/crd
+  destination:
+    # CRDs are cluster-scoped, but Argo CD requires a namespace destination
+    server: https://kubernetes.default.svc
+    namespace: default # CRDs are global resource, leaving as default is fine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Required because Gateway API CRDs are large and will exceed kubectl last-applied-configuration annotation size limit
+      - ServerSideApply=true
