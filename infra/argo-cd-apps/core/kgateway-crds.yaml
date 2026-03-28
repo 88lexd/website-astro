@@ -1,0 +1,27 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kgateway-crds
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1" # Installs after `gateway-api-crds.yaml`
+spec:
+  project: default
+  source:
+    chart: kgateway-crds
+    helm:
+      skipCrds: false
+    repoURL: cr.kgateway.dev/kgateway-dev/charts
+    targetRevision: v2.2.1
+  destination:
+    namespace: kgateway-system
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      # Prune resources during auto-syncing (default is false)
+      prune: true
+      selfHeal: false # Lets not mess up CRDs which I might lose configs
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
