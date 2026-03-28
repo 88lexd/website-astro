@@ -1,0 +1,5 @@
+# Ref: helm show values oci://cr.kgateway.dev/kgateway-dev/charts/kgateway --version v2.2.1
+---
+controller:
+  image:
+    pullPolicy: Always
