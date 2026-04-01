@@ -4,14 +4,14 @@ kind: Application
 metadata:
   name: moup-app
   annotations:
-    # #######################
-    # # Argo CD Image Updater
-    # # This will always use the newest tag
+    #######################
+    # Argo CD Image Updater
+    # This will always use the newest tag
     argocd-image-updater.argoproj.io/image-list: jadenkhuu/moup-app
     # This will checkout the `main` branch and commit/push change into the `argo-cd-image-updater` branch
     # In this repo, there is a GitHub Actions workflow that will auto create a PR when there is a push to this branch.
     argocd-image-updater.argoproj.io/git-branch: main:argo-cd-image-updater
-    # # Format is using `secret:<namespace>/<secret-name>`
+    # Format is using `secret:<namespace>/<secret-name>`
     argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-cred-website-astro
 spec:
   project: default
