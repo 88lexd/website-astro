@@ -8,11 +8,13 @@ metadata:
     # Argo CD Image Updater
     # This will always use the newest tag
     argocd-image-updater.argoproj.io/image-list: jadenkhuu/moup-app
-    # This will checkout the `main` branch and commit/push change into the `argo-cd-image-updater` branch
+    # This will checkout the `main` branch and commit/push change into the `main` branch (e.g. checkout:target)
     # In this repo, there is a GitHub Actions workflow that will auto create a PR when there is a push to this branch.
-    argocd-image-updater.argoproj.io/git-branch: main:argo-cd-image-updater
+    argocd-image-updater.argoproj.io/git-branch: main:main
     # Format is using `secret:<namespace>/<secret-name>`
-    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-cred-jaden-moup
+    # Repo is added to Argo via the console and secret name is retrieved using the following:
+    # $ kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=repository
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/repo-1786642865
 spec:
   project: default
   source:
