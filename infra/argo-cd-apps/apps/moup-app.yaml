@@ -12,7 +12,9 @@ metadata:
     # In this repo, there is a GitHub Actions workflow that will auto create a PR when there is a push to this branch.
     argocd-image-updater.argoproj.io/git-branch: main:argo-cd-image-updater
     # Format is using `secret:<namespace>/<secret-name>`
-    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-cred-jaden-moup
+    # Repo is added to Argo via the console and secret name is retrieved using the following:
+    # $ kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=repository
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/repo-1786642865
 spec:
   project: default
   source:
