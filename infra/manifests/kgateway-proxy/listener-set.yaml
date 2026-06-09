@@ -1,0 +1,37 @@
+# The new practice is to use ListenerSet, otherwise the Gateway resource itself can only have 64 listeners as a hard limit.
+# Furthermore, by using ListenerSet this resource can in theory be managed by each app owner.
+# This is especially important when different TLS/Certificates are required.
+
+# To confirm: Same port can be used by multiple listeners, as long as the `hostname` is different
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ListenerSet
+metadata:
+  name: kgateway-proxy-listener-1
+  namespace: kgateway-system
+spec:
+  parentRef:
+    name: kgateway-proxy
+    namespace: kgateway-system
+    kind: Gateway
+    group: gateway.networking.k8s.io
+  listeners:
+  - name: http-8080
+    # hostname: *.foo.bar.com
+    protocol: HTTP
+    port: 8080
+    allowedRoutes:
+      namespaces:
+        from: All
+
+  # Keep HTTPS listener example for future use
+  # - name: first
+  #   hostname: first.foo.com
+  #   protocol: HTTPS
+  #   port: 443
+  #   tls:
+  #     mode: Terminate
+  #     certificateRefs:
+  #     - kind: Secret
+  #       group: ""
+  #       name: first-workload-cert

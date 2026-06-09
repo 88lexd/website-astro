@@ -1,5 +1,5 @@
 ---
-# See here for mroe config options: https://kgateway.dev/docs/envoy/latest/reference/api/#gatewayparametersspec
+# See here for more config options: https://kgateway.dev/docs/envoy/latest/reference/api/#gatewayparametersspec
 apiVersion: gateway.kgateway.dev/v1alpha1
 kind: GatewayParameters
 metadata:

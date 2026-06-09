@@ -11,10 +11,21 @@ spec:
       name: kgateway-proxy-params
       group: gateway.kgateway.dev
       kind: GatewayParameters
+  allowedListeners:
+    namespaces:
+      from: Same # This is a valid string. Ref: https://gateway-api.sigs.k8s.io/reference/api-spec/1.5/spec/#fromnamespaces
   listeners:
-  - protocol: HTTP
-    port: 80
-    name: http
+  ##########################################################################################################
+  # WARNING/REMINDER:
+  # In Gateway API v1.5.x, ListenerSets can be used, HOWEVER we must have at least 1 listener on the Gateway
+  # Ref: https://gateway-api.sigs.k8s.io/geps/gep-1713/#gateway-changes
+  # Note: This may be removed in the future
+
+  # Reminder 2: Before removing this listener, the HTTPRoute here needs to be updated
+  # https://github.com/jadenkhuu/moup/blob/4a80bb20cdd5e37a05433d2cdefa617786bbd676/chart/templates/http-route.yaml
+  - name: http
+    protocol: HTTP
+    port: 80 # dummy listener
     allowedRoutes:
       namespaces:
         from: All
