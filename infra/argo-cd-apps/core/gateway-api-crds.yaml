@@ -11,8 +11,9 @@ spec:
   project: default
   source:
     repoURL: https://github.com/kubernetes-sigs/gateway-api.git
-    # kgateway supports CRD v1.4.0 currently. I tried 1.5.1 and it didnt work
-    targetRevision: v1.4.0
+    # Ref for supported Gateway API versions by kgateway
+    # https://kgateway.dev/docs/envoy/latest/reference/versions/
+    targetRevision: v1.5.1
     # This path contains the kustomization.yam which Argo CD's built-in Kustomize support will render
     path: config/crd
   destination:
