@@ -41,7 +41,7 @@ export async function getStaticPaths() {
 				currentPage > 1 && (
 					<a
 						href={createPageLink(currentPage - 1)}
-						class='pb-2.5 font-medium hover:text-gray-800 dark:hover:border-white hover:border-opacity-100 transition-colors duration-150 ease-linear border-black border-b-2 text-black z-10 dark:border-white dark:text-white dark:border-opacity-100 border-opacity-100'
+						class='pb-2.5 font-medium hover:text-black dark:hover:text-white dark:hover:border-white hover:border-black transition-colors duration-150 ease-linear border-black border-b-2 text-black z-10 dark:border-white dark:text-white'
 					>
 						Previous
 					</a>
@@ -51,10 +51,10 @@ export async function getStaticPaths() {
 				Array.from({ length: totalPages }).map((_, i) => (
 					<a
 						href={createPageLink(i + 1)}
-						class={`pb-2.5 font-medium hover:text-gray-800 dark:hover:border-white hover:border-opacity-100 transition-colors duration-150 ease-linear border-black border-b-2 z-10 ${
+						class={`pb-2.5 font-medium hover:text-black dark:hover:text-white dark:hover:border-white hover:border-black transition-colors duration-150 ease-linear border-b-2 z-10 ${
 							currentPage === i + 1
-								? 'text-black dark:text-white border-opacity-100'
-								: 'text-gray-500 dark:text-gray-400 border-opacity-0'
+								? 'text-black dark:text-white border-black dark:border-white'
+								: 'text-gray-500 dark:text-gray-400 border-transparent'
 						}`}
 					>
 						{i + 1}
@@ -65,7 +65,7 @@ export async function getStaticPaths() {
 				currentPage < totalPages && (
 					<a
 						href={createPageLink(currentPage + 1)}
-						class='pb-2.5 font-medium hover:text-gray-800 dark:hover:border-white hover:border-opacity-100 transition-colors duration-150 ease-linear border-black border-b-2 text-black z-10 dark:border-white dark:text-white dark:border-opacity-100 border-opacity-100'
+						class='pb-2.5 font-medium hover:text-black dark:hover:text-white dark:hover:border-white hover:border-black transition-colors duration-150 ease-linear border-black border-b-2 text-black z-10 dark:border-white dark:text-white'
 					>
 						Next
 					</a>
