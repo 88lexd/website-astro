@@ -1,5 +1,5 @@
 ---
-import type { CollectionEntry } from 'astro:content'
+import { type CollectionEntry, render } from 'astro:content'
 import PostCard from '@/components/PostCard'
 import { cn } from '@/utils'
 
@@ -12,14 +12,15 @@ const { posts, FirstBig = false } = Astro.props
 
 // Sort posts by pubDate (latest to oldest)
 const sortedPosts = posts.sort((a, b) => {
-  const dateA = new Date(a.data.pubDate || '1970-01-01').getTime();
-  const dateB = new Date(b.data.pubDate || '1970-01-01').getTime();
-  return dateB - dateA; // Descending order
-});
+	const dateA = new Date(a.data.pubDate || '1970-01-01').getTime()
+	const dateB = new Date(b.data.pubDate || '1970-01-01').getTime()
+	return dateB - dateA // Descending order
+})
 
 // Debug: Log pubDates for verification
-// console.log('Sorted Posts:', sortedPosts.map(post => ({ slug: post.slug, pubDate: post.data.pubDate })));
+// console.log('Sorted Posts:', sortedPosts.map(post => ({ slug: post.id, pubDate: post.data.pubDate })));
 ---
+
 <section
 	class={cn(
 		`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-3`,
@@ -28,14 +29,10 @@ const sortedPosts = posts.sort((a, b) => {
 >
 	{
 		sortedPosts.map(async (post) => {
-			const { remarkPluginFrontmatter } = await post.render()
+			const { remarkPluginFrontmatter } = await render(post)
 
 			return (
-				<PostCard
-					data={post.data}
-					slug={post.slug}
-					readTime={remarkPluginFrontmatter.minutesRead}
-				/>
+				<PostCard data={post.data} slug={post.id} readTime={remarkPluginFrontmatter.minutesRead} />
 			)
 		})
 	}

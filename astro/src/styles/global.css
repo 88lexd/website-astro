@@ -1,45 +1,50 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@plugin "@tailwindcss/typography";
 
-@layer base {
-	body {
-		transition: background-color 0.5s ease;
-	}
+@custom-variant dark (&:where(.dark, .dark *));
 
-	.prose code {
-		@apply text-base;
-	}
+@theme {
+	--color-white: #f8f9fa;
+	--font-body: Manrope, sans-serif;
+	--grid-template-columns-list: repeat(auto-fill, minmax(400px, max-content));
+}
 
-	@font-face {
-		font-family: Manrope;
-		src: url(../assets/fonts/Manrope-SemiBold.woff2) format('woff2');
-	}
+body {
+	transition: background-color 0.5s ease;
+}
 
-	@font-face {
-		font-family: Manrope;
-		src: url(../assets/fonts/Manrope-Medium.woff2) format('woff2');
-	}
+.prose code {
+	@apply text-base;
+}
 
-	@font-face {
-		font-family: Manrope;
-		src: url(../assets/fonts/Manrope-Light.woff2) format('woff2');
-	}
+@font-face {
+	font-family: Manrope;
+	src: url(../assets/fonts/Manrope-SemiBold.woff2) format('woff2');
+}
 
-	@font-face {
-		font-family: Manrope;
-		src: url(../assets/fonts/Manrope-Regular.woff2) format('woff2');
-	}
+@font-face {
+	font-family: Manrope;
+	src: url(../assets/fonts/Manrope-Medium.woff2) format('woff2');
+}
 
-	/* prose styles here */
-	.prose h1,
-	h2,
-	h3,
-	h4,
-	h5,
-	h6 {
-		@apply text-zinc-800 dark:text-zinc-100   !important;
-	}
+@font-face {
+	font-family: Manrope;
+	src: url(../assets/fonts/Manrope-Light.woff2) format('woff2');
+}
+
+@font-face {
+	font-family: Manrope;
+	src: url(../assets/fonts/Manrope-Regular.woff2) format('woff2');
+}
+
+/* prose styles here */
+.prose h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	@apply text-zinc-800! dark:text-zinc-100!;
 }
 
 .moon-logo {

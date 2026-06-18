@@ -4,3 +4,5 @@ test/fixtures/**/*.astro
 pnpm-lock.yaml
 .github
 .changeset
+.astro
+tina/__generated__
