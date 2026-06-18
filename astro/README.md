@@ -13,9 +13,7 @@
 
 </div>
 
-
 ## 📌 Table Of Contents
-
 
 1. [Demo](#-Demo)
 2. [CMS](#-Tina-CMS)
@@ -31,7 +29,6 @@
 12. [CLI](#-Commands)
 13. [Contributors](#-Contributors)
 
-
 ## 💻 Demo
 
 Check out the [Demo](https://blog-template-gray.vercel.app/), hosted on Vercel
@@ -39,10 +36,7 @@ Check out the [Demo](https://blog-template-gray.vercel.app/), hosted on Vercel
 
 https://github.com/danielcgilibert/blog-template/assets/44746462/56b8399e-cc5b-45a8-b9d2-d69833ecadb1
 
-
 ## 🦙 Tina CMS
-
-
 
 By default, this template comes pre-configured with Tina CMS.
 
@@ -50,19 +44,16 @@ Now you can create your posts directly from the CMS without the need to do it ma
 
 If you decide to use Tina, it's not necessary to add any properties to the Markdown files, Tina does it automatically.
 
-
 Example:
 
 https://github.com/danielcgilibert/blog-template/assets/44746462/51ae324c-d383-40be-9b16-db159d1af15d
-
-
 
 The documentation for Tina CMS can be found [here](https://tina.io/docs/)
 
 > Tina is completely optional, and you can remove it, and it will still function in the same way.
 
-    
 ## 💪 Features:
+
 <p align="center">
   <a href="https://pagespeed.web.dev/analysis/https-blog-template-gray-vercel-app/7ovjfewos9?form_factor=mobile">
     <img width="510" alt="openblog Lighthouse Score" src="public/openblog-lighthouse-score.svg">
@@ -88,8 +79,6 @@ The documentation for Tina CMS can be found [here](https://tina.io/docs/)
 - ✅ Copy code block
 - ✅ CMS in the repository (Tina CMS)
 
-
-
 ## 🛣️ Roadmap
 
 - ❌ Add post author
@@ -98,7 +87,6 @@ The documentation for Tina CMS can be found [here](https://tina.io/docs/)
 - ❌ Add filters for reading time, date...
 - ❌ More sharing options
 - ❌ Internationalization (i18n)
-
 
 ## ⚙️ Stack
 
@@ -135,7 +123,6 @@ pnpm install
 ```bash
 pnpm dev
 ```
-
 
 ## 📐 Configure
 

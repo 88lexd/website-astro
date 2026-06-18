@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1-labs
 
-FROM node:18 AS builder
+FROM node:22 AS builder
 
 WORKDIR /app/astro
 
-RUN npm install -g pnpm@latest-7
+RUN npm install -g pnpm@9
 
 # Must exclude these directory on initial copy, not sure why but is failing the `pnpm build`..
 COPY --exclude=astro/src --exclude=astro/public . /app
