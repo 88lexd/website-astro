@@ -4,6 +4,11 @@ This is my [personal blog](https://lexdsolutions.com) that is powered on Astro a
 ## Dev Setup
 The following are notes for myself on how I do development work on my machine.
 
+### Agentic Development
+Started using Antigravity IDE for development and also included an agent skill for a more consistent workflow.
+
+- Launch Antigravity and connect to WSL Target (similar to VS Code)
+- Open the `website-astro` repo directly so the `.agents` folder can be found by Antigravity (as a workspace skill).
 
 ### Local Development
 Use the following to start development
