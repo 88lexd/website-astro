@@ -20,7 +20,7 @@
 		"url": "https://github.com/danielcgilibert/blog-template/issues"
 	},
 	"scripts": {
-		"dev": "tinacms dev -c 'astro dev'",
+		"dev": "astro dev",
 		"start": "astro dev",
 		"build": "astro build",
 		"sync": "astro sync",
@@ -36,14 +36,12 @@
 		"@astrojs/react": "^5.0.7",
 		"@astrojs/rss": "4.0.18",
 		"@astrojs/sitemap": "3.7.3",
-		"@tinacms/cli": "^2.5.1",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
 		"astro": "6.4.8",
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7",
-		"react-medium-image-zoom": "^5.4.8",
-		"tinacms": "^3.9.3"
+		"react-medium-image-zoom": "^5.4.8"
 	},
 	"devDependencies": {
 		"@tailwindcss/vite": "^4.3.1",
