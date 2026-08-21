@@ -74,7 +74,7 @@ When changes related to Astro are made in the main branch, the following happens
 	- Creates a release+tag on GitHub using the same version tag.
 - Argo CD Image Updater:
 	- Detects that there is a new image
-	- Creates a branch called `argo-cd-image-updater`, drops in the [updated Argo config](https://github.com/88lexd/website-astro/blob/main/infra/charts/website-astro/.argocd-source-website-astro.yaml) and pushes it back to GitHub
+	- Creates a branch called `argo-cd-image-updater`, drops in the [updated Argo config](https://github.com/88lexd/website-astro/blob/main/infra/website-chart/.argocd-source-website-astro.yaml) and pushes it back to GitHub
 	- GitHub Actions will pick up a push from this branch and creates a new Pull Request ([example PR](https://github.com/88lexd/website-astro/pull/26/files))
 - Upon Merge Argo CD Image Updater PR on GitHub
 	- Argo CD Application sync will pick up the change and will update the deployment/image to use the new version.

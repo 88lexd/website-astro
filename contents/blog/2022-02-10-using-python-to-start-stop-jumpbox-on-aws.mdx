@@ -12,7 +12,7 @@ heroImage: "../../assets/images/Start-Stop-Jumpbox-Script.png"
 ---
 import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
 
-Previously I wrote a blog about how I've replaced my original MicroK8s cluster with a new 2x node cluster that is built using kubeadm. In this new setup, I have a dedicated jumpbox to manage the cluster. You can read more about this on my [previous blog post here.](/post/2022-01-07-replacing-microk8s-with-kubernetes-cluster-created-by-kubeadm)
+Previously I wrote a blog about how I've replaced my original MicroK8s cluster with a new 2x node cluster that is built using kubeadm. In this new setup, I have a dedicated jumpbox to manage the cluster. You can read more about this on my [previous blog post here.](https://lexdsolutions.com/2022/01/replacing-microk8s-with-kubernetes-cluster-created-by-kubeadm/)
 
 Here is a quick diagram of my current AWS setup for this blog.
 
@@ -31,7 +31,7 @@ Using option 1 is very time consuming and considering that I still need to go ba
 
 **Note**: Although it is automated, I still need to assume-role into my AWS account using MFA. This is okay, since logging into the AWS console still requires me to use MFA anyway.
 
-To learn more about what assume-role is, check out my blog called "[AWS – How to Assume Role using Python](/post/2021-09-29-how-to-assume-role-on-aws-and-using-python)"
+To learn more about what assume-role is, check out my blog called "[AWS – How to Assume Role using Python](https://lexdsolutions.com/2021/09/how-to-assume-role-on-aws-and-using-python/)"
 
 ## Starting the jumpbox
 
@@ -132,4 +132,4 @@ So this script is great, I can save money by only starting up the instance whene
 
 For this reason, I have also implemented a Lambda function that runs every hour to make sure my jumpbox uptime does not exceed my defined threshold. If it does then SNS will send me an email notification.
 
-My next blog post will be talking about this Lambda function. If you would like to go ahead you can see the source code that is on my [GitHub repository here](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/3-app-configuration/lambda-jumpbox-uptime).
+My next blog post will be talking about this Lambda function. If you would like to go ahead you can see the source code that is on my [GitHub repository here](https://github.com/88lexd/lexd-solutions/tree/main/aws-wordpress/3-app-configuration/lambda-jumpbox-uptime).

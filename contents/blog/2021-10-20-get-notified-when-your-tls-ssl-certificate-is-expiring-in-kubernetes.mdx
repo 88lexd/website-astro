@@ -10,7 +10,7 @@ tags:
 heroImage: "../../assets/images/TLS-Cert-Expiry-Notification.png"
 ---
 
-In my [previous blog](/post/2021-10-08-how-i-created-my-own-tls-certificate-renewal-bot-on-kubernetes), I talked about how I created a bot to auto renew my TLS/SSL certificates. The bot however will only work if the certificate is provided and signed by Let's Encrypt. For other third party signed certificates that are manually imported, it will not work.
+In my [previous blog](https://lexdsolutions.com/2021/10/how-i-created-my-own-tls-certificate-renewal-bot-on-kubernetes/), I talked about how I created a bot to auto renew my TLS/SSL certificates. The bot however will only work if the certificate is provided and signed by Let's Encrypt. For other third party signed certificates that are manually imported, it will not work.
 
 Since I already have the pieces of code to check for the certificate expiry dates and all, it was easy enough for me to put together another script that can also run as a cronjob to notify me when a certificate is about to expire.
 

@@ -12,7 +12,7 @@ heroImage: "../../assets/images/LambdaJumpBox.png"
 ---
 import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
 
-In my [previous post](/post/2022-02-10-using-python-to-start-stop-jumpbox-on-aws) I talked about how I've written my own Python script to auto start/stop my AWS EC2 jumpbox. Since I needed to manually execute the script to stop the instance, there may come a time where I forget to do so and this will incur unwanted additional charges on my AWS account.
+In my [previous post](https://lexdsolutions.com/2022/02/using-python-to-start-stop-jumpbox-on-aws/) I talked about how I've written my own Python script to auto start/stop my AWS EC2 jumpbox. Since I needed to manually execute the script to stop the instance, there may come a time where I forget to do so and this will incur unwanted additional charges on my AWS account.
 
 For this reason, I've also implemented a Lambda function (using Python) that runs hourly to check the instance uptime and it will send me an email notification via SNS when the instance uptime is above my defined threshold.
 
@@ -78,7 +78,7 @@ resource "aws_s3_bucket_public_access_block" "lambda_s3_bucket_block_public" {
 
 **GitHub Docker Container Actions**
 
-The default runner by GitHub is very limited and does not provide the tooling required to talk to AWS such as the AWSCLI. In my [previous blog post here](/post/2022-01-25-creating-a-github-docker-container-action-to-upload-an-object-to-aws-s3), I talk about how I created this GitHub Action. I recommend you to take a look to get a better understand of how this all works.
+The default runner by GitHub is very limited and does not provide the tooling required to talk to AWS such as the AWSCLI. In my [previous blog post here](https://lexdsolutions.com/2022/01/creating-a-github-docker-container-action-to-upload-an-object-to-aws-s3/), I talk about how I created this GitHub Action. I recommend you to take a look to get a better understand of how this all works.
 
 **Using Terraform to create the Lambda function**
 
