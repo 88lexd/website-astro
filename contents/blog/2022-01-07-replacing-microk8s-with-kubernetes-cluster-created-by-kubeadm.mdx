@@ -13,7 +13,7 @@ heroImage: "../../assets/images/K8s_kubeadm.png"
 ---
 import ImageZoom from '../../astro/src/components/mdx/ImageZoom.jsx'
 
-When I first created this blog, I went with the most cost effective solution by deploying only a single EC2 instance running MicroK8s. To learn more about the original setup you can read my [previous post](https://lexdsolutions.com/2021/09/setting-up-microk8s-and-a-nfs-server-using-ansible/).
+When I first created this blog, I went with the most cost effective solution by deploying only a single EC2 instance running MicroK8s. To learn more about the original setup you can read my [previous post](/post/2021-09-24-setting-up-microk8s-and-a-nfs-server-using-ansible).
 
 ## New 2x Node Cluster Design
 
@@ -35,7 +35,7 @@ In this new design, I now have the following:
 
 ## Creating the Infrastructure Resources through Terraform
 
-As I already have my existing Terraform code to create the VPC etc. I only needed to create a sub-module to provision these new additional resources. The source code for Terraform can be found here on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old). If you want to know more about my existing Terraform code, see my [previous post](https://lexdsolutions.com/post/2021-09-21-using-cloudformation-and-terraform-on-my-brand-new-aws-account/).
+As I already have my existing Terraform code to create the VPC etc. I only needed to create a sub-module to provision these new additional resources. The source code for Terraform can be found here on my [GitHub page](https://github.com/88lexd/lexd-solutions/tree/main/archived-wordpress/1-infra-configuration/2-general-setup-aws-old). If you want to know more about my existing Terraform code, see my [previous post](/post/2021-09-21-using-cloudformation-and-terraform-on-my-brand-new-aws-account).
 
 The new Terraform module will provision and configure the following additional resources on AWS:
 

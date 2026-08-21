@@ -13,13 +13,13 @@ tags:
 
 ---
 
-**Update as of March 2024**: I have migrated my blog from AWS to self-hosted k8s cluster. The site is fronted via Cloudflare. Check out this [blog post](https://lexdsolutions.com/2024/03/migrating-my-blog-from-aws-to-self-hosting-with-cloudflare-tunnel/) or my recent blogs for more details. The chart has been modified slightly to suit my new requirements.
+**Update as of March 2024**: I have migrated my blog from AWS to self-hosted k8s cluster. The site is fronted via Cloudflare. Check out this [blog post](/post/2024-03-15-migrating-my-blog-from-aws-to-self-hosting-with-cloudflare-tunnel) or my recent blogs for more details. The chart has been modified slightly to suit my new requirements.
 
 This is part 3 of 3 to my “how I built this blog” series. If you haven't seen the first 2 parts of this series yet, you can find them here:
 
-- Part 1 - [Using CloudFormation and Terraform on my Brand New AWS Account](https://lexdsolutions.com/2021/09/using-cloudformation-and-terraform-on-my-brand-new-aws-account/)
+- Part 1 - [Using CloudFormation and Terraform on my Brand New AWS Account](/post/2021-09-21-using-cloudformation-and-terraform-on-my-brand-new-aws-account)
 
-- Part 2 - [Ansible to Setup MicroK8s and a NFS Server on Ubuntu 20.04](https://lexdsolutions.com/2021/09/setting-up-microk8s-and-a-nfs-server-using-ansible/)
+- Part 2 - [Ansible to Setup MicroK8s and a NFS Server on Ubuntu 20.04](/post/2021-09-24-setting-up-microk8s-and-a-nfs-server-using-ansible)
 
 In the previous 2 posts, I've talked about how I built the cloud infrastructure on AWS and configured the OS (Ubuntu 20.04) with MicroK8s. It is now time to deploy WordPress and the backend database onto Kubernetes by using Helm.
 
