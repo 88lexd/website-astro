@@ -1,15 +1,14 @@
 terraform {
+  required_version = "> 1.8"
   required_providers {
-    cloudflare = {
-      source  = "cloudflare/cloudflare"
-      version = "~> 4.51"
-    }
-
-    random = {
-      source  = "hashicorp/random"
-      version = "3.6.0"
+    newrelic = {
+      source  = "newrelic/newrelic"
+      version = "~> 3"
     }
   }
 }
 
-provider "cloudflare" {}
+# Provider can read from environment variable
+# export NEW_RELIC_ACCOUNT_ID="my-nr-account-id"
+# export NEW_RELIC_API_KEY="my-key"
+provider "newrelic" {}
