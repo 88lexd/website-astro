@@ -1,0 +1,29 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: descheduler
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://kubernetes-sigs.github.io/descheduler/
+      chart: descheduler
+      # helm repo add descheduler https://kubernetes-sigs.github.io/descheduler/ && helm repo update
+      # helm search repo descheduler/descheduler --versions | head -n5
+      targetRevision: 0.36.0
+      helm:
+        releaseName: descheduler
+        # helm show values descheduler/descheduler --version 0.36.0
+        valuesObject:
+          schedule: "*0 10 * * *"
+          timeZone: Australia/Sydney
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
