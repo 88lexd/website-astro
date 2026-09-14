@@ -1,6 +1,9 @@
 ---
 controller:
   replicaCount: 1
+  service:
+    annotations:
+      metallb.io/loadBalancerIPs: "192.168.0.45"
   metrics:
     enabled: true
     service:

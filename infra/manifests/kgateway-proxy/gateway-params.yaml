@@ -14,6 +14,8 @@ spec:
       type: LoadBalancer # This is the default, specifying here anyway for reference only
       extraLabels:
         gateway: custom
+      extraAnnotations:
+        metallb.io/loadBalancerIPs: "192.168.0.47"
       externalTrafficPolicy: Local # Set to Local to preserve the original client IP address
     podTemplate:
       extraLabels:
