@@ -22,8 +22,15 @@ resource "cloudflare_ruleset" "www" {
   }
 }
 
+moved {
+  from = cloudflare_ruleset.waf
+  to   = cloudflare_ruleset.waf["5cf4cd965a07d20a7a74a14565a2037b"]
+}
+
 resource "cloudflare_ruleset" "waf" {
-  zone_id     = cloudflare_zone.lexdsolutions.id
+  for_each = toset(distinct([for t in var.tunnels : t.zone_id]))
+
+  zone_id     = each.value
   name        = "custom-waf-rules"
   description = "Custom WAF rules"
   kind        = "zone"
@@ -34,6 +41,13 @@ resource "cloudflare_ruleset" "waf" {
   rules {
     description = "Block High Threat"
     expression  = "(cf.threat_score gt 50)"
+    action      = "block"
+    enabled     = true
+  }
+
+  rules {
+    description = "Block Node2Shell"
+    expression  = "any(lower(http.request.headers[\"content-encoding\"][*])[*] contains \"br\") or (http.request.uri.path eq \"/_next/image\" and lower(http.request.uri.query) contains \"url=http\")"
     action      = "block"
     enabled     = true
   }
