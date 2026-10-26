@@ -3,5 +3,7 @@ terraform {
     bucket = "lexd-solutions-tfstate"
     key    = "terraform/cloudflare.tfstate"
     region = "ap-southeast-2"
+
+    use_lockfile = true
   }
 }
